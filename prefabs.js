@@ -58,8 +58,68 @@ let Shotgun = GunBase.copy();
   gun.shootAud = "gun/shotgunShot";
   gun.reloadAud = "gun/shotgunReload";
 }
+let SMG = GunBase.copy();
+{
+  SMG.name = "SMG";
+  SMG.getComponent(Sprite).tex = "gun/smg";
+  let gun = SMG.getComponent(Gun);
+
+  gun.tags = "weapon,primary";
+  gun.ammoType = AMMOTYPE.light;
+  gun.maxAmmo = 20;
+  gun.ammo = 20;
+  gun.damage = 8;
+  gun.cooldown = 0.1;
+  gun.reloadCooldown = 1;
+  gun.automatic = true;
+  gun.spread = 10 / 180 * Math.PI;
+
+  gun.shootAud = "gun/pistolShot";
+  gun.reloadAud = "gun/reloadMagazine";
+}
+let Sniper = GunBase.copy();
+{
+  Sniper.name = "Sniper";
+  Sniper.getComponent(Sprite).tex = "gun/sniper";
+  let gun = Sniper.getComponent(Gun);
+
+  gun.tags = "weapon,primary";
+  gun.ammoType = AMMOTYPE.heavy;
+  gun.maxAmmo = 1;
+  gun.ammo = 1;
+  gun.damage = 80;
+  gun.cooldown = 1;
+  gun.reloadCooldown = 1.5;
+  gun.automatic = false;
+  gun.spread = 0 / 180 * Math.PI;
+
+  gun.shootAud = "gun/sniperShot";
+  gun.reloadAud = "gun/reloadMagazine";
+}
+let MachineGun = GunBase.copy();
+{
+  MachineGun.name = "Machine Gun";
+  MachineGun.getComponent(Sprite).tex = "gun/machinegun";
+  let gun = MachineGun.getComponent(Gun);
+
+  gun.tags = "weapon,primary";
+  gun.ammoType = AMMOTYPE.heavy;
+  gun.maxAmmo = 30;
+  gun.ammo = 20;
+  gun.damage = 20;
+  gun.cooldown = 0.2;
+  gun.reloadCooldown = 2;
+  gun.automatic = true;
+  gun.spread = 0 / 180 * Math.PI;
+
+  gun.shootAud = "gun/sniperShot";
+  gun.reloadAud = "gun/reloadMagazine";
+}
 
 let gunLootTable = new LootTable([
   {item: Pistol, weight: 1}, 
   {item: Shotgun, weight: 1}, 
+  {item: SMG, weight: 1}, 
+  {item: Sniper, weight: 1}, 
+  {item: MachineGun, weight: 1}, 
 ]);

@@ -103,6 +103,39 @@ class Inventory extends Component {
     return idLookup[slot.item];
   }
 
+  drop(slotIndex, amount = 1) {
+    let slot = this.slots[slotIndex];
+
+    for (let i = 0; i < amount; i++) {
+      if (slot.amount <= 0) return;
+      
+      let item = idLookup[slot.item]
+      if (slot.amount > 1) {
+        let item2 = item.copy();
+        item2.randomizeId();
+        
+        item2.getComponent(Item)._held = false;
+        item2.getComponent(Transform).pos.from(this.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(2));
+        item2.getComponent(Transform).dir = Math.random() * Math.PI * 2;
+        
+        createEntity(item2, itemHolder);
+        
+        slot.amount--;
+      } else {
+        setParent(item, itemHolder);
+        item.transform.pos.from(this.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(2));
+        item.item.drop();
+        
+        delete slot.item;
+        slot.amount = 0;
+        
+        if (slotIndex == this.heldIndex) {
+          this.heldIndex = this.heldIndex;
+        }
+      }
+    }
+  }
+
 
   renderSlots() {    
     if (!this.open) return;
@@ -162,7 +195,7 @@ class Inventory extends Component {
         if (gun) {
           renderer.set("textAlign", ["center", "bottom"]);
           renderer.set("font", "0.2px monospace");
-          //renderer.text(`${gun.ammo}/${gun.maxAmmo}`, new Vec(0.5, 0.9));
+          renderer.text(`${gun.ammo}/${gun.maxAmmo}`, new Vec(0.5, 0.9));
         }
         return;
       }

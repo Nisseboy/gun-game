@@ -13,7 +13,7 @@ class Server extends ServerBase {
     client.fire("world");
 
     this.on("connection", (id, conn) => {      
-      this.fire("createEntity", id, world.id, this.createPlayer(id).serialize());
+      this.fire("createEntity", id, this.createPlayer(id).serialize(), world.id);
       this.send(id, "world", world.serialize());
     });
     this.on("disconnection", (id, conn) => {
@@ -24,7 +24,7 @@ class Server extends ServerBase {
     });
 
     this.on("respawn", (id) => {      
-      this.sendAll("createEntity", world.id, this.createPlayer(id).serialize());
+      this.sendAll("createEntity", this.createPlayer(id).serialize(), world.id);
     });
 
 
@@ -76,10 +76,10 @@ function createWorld() {
   ]);
 
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 40; i++) {
     let p = gunLootTable.pick().copy();
     p.randomizeId();
-    p.transform.pos.from(player0.transform.pos).addV(new Vec(Math.random()*2, Math.random()*2));
+    p.transform.pos.from(player0.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(10));
     itemHolder.appendChild(p);
   }
   

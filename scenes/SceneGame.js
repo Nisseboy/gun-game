@@ -16,7 +16,7 @@ class SceneGame extends Scene {
       if (world) this.loadWorld(cloneData(world));
     });
 
-    client.on("createEntity", (parentId, entity) => {
+    client.on("createEntity", (entity, parentId) => {
       let e = cloneData(entity);
       e.stripClientComponents();
       idLookup[parentId].appendChild(e);
@@ -69,6 +69,14 @@ class SceneGame extends Scene {
       entity.remove();
 
       if (entityId == client.id) {
+        let inventory = entity.inventory;
+        for (let i = 0; i < inventory.slots.length; i++) {
+          let slot = inventory.slots[i];
+          if (slot.amount > 0) {
+            inventory.drop(i, slot.amount);
+          }
+        }
+
         this.deathTimer = new TimerTime(5, () => {
           if (this.deathTimer.progress == 1) {
             delete this.deathTimer;
@@ -214,6 +222,10 @@ class SceneGame extends Scene {
   }
 }
 
+function createEntity(entity, parent) {
+  client.fire("createEntity", entity.serialize(), parent.id);
+  client.send("createEntity", entity.serialize(), parent.id);
+}
 function removeEntity(entity) {
   client.fire("removeEntity", entity.id);
   client.send("removeEntity", entity.id);

@@ -27,6 +27,7 @@ class PlayerInput extends Component {
     this.inventory.allowedHeldSlots = [0, 1];
     this.inventory.heldIndex = 0; 
 
+    return;
     for (let slot of this.inventory.slots) {      
       if (slot.tag) continue;
 
@@ -83,8 +84,15 @@ class PlayerInput extends Component {
       this.inventory.scrollHeld(Math.sign(nde.scrolled));
     }
 
+    if (this.inventory.heldSlot) {
+      if (nde.getKeyDown("Drop Item")) {
+        this.inventory.drop(this.inventory.heldIndex, 1);
+      }
+    }
+
+    if (this.weaponUser.weapon != this.inventory.heldItem) this.weaponUser.weapon = this.inventory.heldItem;
+    
     if (this.inventory.heldItem?.item.tags.split(",").includes("weapon")) {
-      if (this.weaponUser.weapon != this.inventory.heldItem) this.weaponUser.weapon = this.inventory.heldItem;
       this.weaponUser.targetPos.from(this.mousePos);
 
       this.weaponUser.trigger = nde.getKeyPressed("Shoot");

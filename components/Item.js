@@ -28,7 +28,7 @@ class Item extends Component {
       let index = groundItems.indexOf(this);
       if (index == -1) return;
       groundItems.splice(index, 1);
-    } else {      
+    } else {            
       this.ob.active = true;
 
       groundItems.push(this);
@@ -47,9 +47,9 @@ class Item extends Component {
     this.held = true;
     client.send("set", this.ob.id, "item.held", true);
   }
-  release() {
-    this.held = false;
-    this.tracker.track();
+  drop() {
+    this.held = false;    
+    this.tracker.snap();
     client.send("set", this.ob.id, "item.held", false);
   }
 

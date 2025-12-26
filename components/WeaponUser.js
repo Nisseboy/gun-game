@@ -19,7 +19,7 @@ class WeaponUser extends Component {
   }
 
   set weapon(value) {
-    if (this.weapon) {
+    if (this.weapon && this.weapon.item.held) {
       setActive(this.weapon, false);
       setParent(this.weapon, itemHolder);
 
