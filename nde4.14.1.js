@@ -557,7 +557,7 @@ class Camera extends Serializable {
    * @param {Renderer} r renderer
    */
   scaleRenderer(r = renderer) {
-    r.scale(new Vec(this.renderW / this.w, this.renderW / this.w));
+    r.scale(new Vec(r.size.x / this.w, r.size.y / (this.w * this.ar)));
   }
   /**
    * Scales renderer from screen space to world space
@@ -565,7 +565,7 @@ class Camera extends Serializable {
    * @param {Renderer} r renderer
    */
   unscaleRenderer(r = renderer) {
-    r.scale(new Vec(1, 1)._div(this.renderW / this.w));
+    r.scale(new Vec(this.w / r.size.x, (this.w * this.ar) / r.size.y));
   }
 
   /**

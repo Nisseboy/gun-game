@@ -194,7 +194,9 @@ class SceneGame extends Scene {
 
       renderer.ctx.globalCompositeOperation = "multiply";
       renderVision(cam);
-      renderer.ctx.globalCompositeOperation = "source-over"
+      //renderer.ctx.globalCompositeOperation = "multiply";
+      //renderLights(cam);
+      renderer.ctx.globalCompositeOperation = "source-over";
 
       for (let i = 0; i < openInventories.length; i++) {
         openInventories[i].renderSlots();
@@ -207,6 +209,25 @@ class SceneGame extends Scene {
       let inv = this.player.inventory;
       inv.renderSlot(0, new Vec(cam.w - 1.1, cam.w * cam.ar - 2.15));
       inv.renderSlot(1, new Vec(cam.w - 1.1, cam.w * cam.ar - 1.1));
+
+
+      renderer.set("fill", "rgba(0, 0, 0, 0)");
+      renderer.set("stroke", "rgba(0, 0, 0, 255");
+      renderer.set("lineWidth", 0.03);
+
+      let size = new Vec(2, 0.4);
+      let pos = new Vec(cam.w - 1.2 - size.x, cam.w * cam.ar - 0.1 - size.y);
+      renderer.rect(pos, size);
+      renderer.rect(new Vec(pos.x, pos.y - 0.1 - size.y), size);
+
+      renderer.set("stroke", "rgba(0, 0, 0, 0)");
+      
+      renderer.set("fill", "rgba(255, 0, 0, 0.51)");
+      renderer.rect(pos, new Vec(size.x * Math.max(this.player.entity.hp / 100, 0), size.y));
+      renderer.set("fill", "rgba(255, 238, 0, 0.51)");
+      renderer.rect(new Vec(pos.x, pos.y - 0.1 - size.y), new Vec(size.x * this.playerInput.weaponUser.reloadProgress, size.y));
+
+
 
       if (this.deathTimer) {
         renderer.set("fill", "rgba(131, 0, 0, 0.27)");
@@ -222,6 +243,10 @@ class SceneGame extends Scene {
   }
 }
 
+function sendSet(entity, path, value) {
+  client.fire("set", entity.id, path, value);
+  client.send("set", entity.id, path, value);
+}
 function createEntity(entity, parent) {
   client.fire("createEntity", entity.serialize(), parent.id);
   client.send("createEntity", entity.serialize(), parent.id);

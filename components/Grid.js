@@ -112,7 +112,7 @@ class Grid extends Component {
     }
   }
 
-  createMask(pos, maxR, cam, texture) {
+  createMask(pos, maxR, ar, texture) {
     let ctx = texture.ctx;
 
     if (pos.x <= 0 || pos.y <= 0 || pos.x >= this.size.x - 1 || pos.y >= this.size.y - 1) {
@@ -121,17 +121,14 @@ class Grid extends Component {
       return;
     }
 
-    ctx.fillStyle = "rgb(0,0,0)";
-    ctx.fillRect(0, 0, texture.size.x, texture.size.y);
-
     ctx.fillStyle = "rgb(255, 255, 255)";
     ctx.strokeStyle = "rgb(255, 255, 255)";
     ctx.lineWidth = 10;
     ctx.beginPath();
 
     let dirStep = Math.PI * 2 / settings.visionSamples; 
-    let scaling = 2 / cam.w;
-    let invAr = 1 / cam.ar;
+    let scaling = 1 / maxR;
+    let invAr = 1 / ar;
     let res, cos, sin, d;
     for (let i = 0; i < settings.visionSamples + 1; i++) {
       cos = Math.cos(i * dirStep);

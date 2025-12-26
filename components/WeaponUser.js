@@ -8,6 +8,7 @@ class WeaponUser extends Component {
     this.trigger = false;
 
     this.reloading = false;
+    this.reloadProgress = 0;
     this.lastTrigger = false;
     this.hasClicked = false;
     this.tipPos = new Vec(0, 0);
@@ -23,6 +24,7 @@ class WeaponUser extends Component {
       setActive(this.weapon, false);
       setParent(this.weapon, itemHolder);
 
+      this.reloadProgress = 0;
       this.reloading = false;
     }
 
@@ -49,23 +51,25 @@ class WeaponUser extends Component {
   update(dt) {
     this.cooldown = Math.max(this.cooldown - dt, 0);
     if (this.reloading && !this.cooldown) {
-
       if (this.weapon.name == "Shotgun") {
         sendAudio(this.ob, this.gun.reloadAud);
 
-        this.gun.ammo++;
+        sendSet(this.weapon, "gun.ammo", this.gun.ammo + 1);
 
         if (this.gun.ammo == this.gun.maxAmmo) {
           this.reloading = false;
         } else
           this.cooldown = this.gun.reloadCooldown;
+          this.reloadProgress = 0;
       } else {
         sendAudio(this.ob, this.gun.reloadAud + "End");
 
-        this.gun.ammo = this.gun.maxAmmo;
+        sendSet(this.weapon, "gun.ammo", this.gun.maxAmmo);
         this.reloading = false;
       }
-    }
+    } 
+    if (this.reloading) this.reloadProgress += dt / this.gun.reloadCooldown;
+    else this.reloadProgress = 0;
 
     if (!this.weapon) return;
 
@@ -155,6 +159,7 @@ class WeaponUser extends Component {
     if (!this.weapon || this.cooldown || this.gun.ammo == this.gun.maxAmmo) return;
 
     this.reloading = true;
+    this.reloadProgress = 0;
     this.cooldown = this.gun.reloadCooldown;
 
     if (!this.weapon.name == "Shotgun") sendAudio(this.ob, this.gun.reloadAud + "Start");

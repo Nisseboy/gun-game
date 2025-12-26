@@ -73,6 +73,10 @@ function createWorld() {
     itemHolder,
 
     player0,
+
+    new Ob({pos: new Vec(1.5, 1.5)}, [
+      new Light({maxR: 3}),
+    ]),
   ]);
 
 
