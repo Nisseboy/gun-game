@@ -20,12 +20,13 @@ class WeaponUser extends Component {
   }
 
   set weapon(value) {
-    if (this.weapon && this.weapon.item.held) {
-      setActive(this.weapon, false);
-      setParent(this.weapon, itemHolder);
-
+    if (this.weapon) {
       this.reloadProgress = 0;
       this.reloading = false;
+    }
+    if (this.weapon?.held) {
+      setActive(this.weapon, false);
+      setParent(this.weapon, itemHolder);
     }
 
     this._weapon = value;
@@ -49,6 +50,8 @@ class WeaponUser extends Component {
   }
   
   update(dt) {
+    
+
     this.cooldown = Math.max(this.cooldown - dt, 0);
     if (this.reloading && !this.cooldown) {
       if (this.weapon.name == "Shotgun") {

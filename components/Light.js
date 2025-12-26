@@ -5,7 +5,7 @@ class Light extends Component {
     super();
 
     this.maxR = props.maxR || 2;
-    this.tex = props.tex || "duck/1";
+    this.tex = props.tex || "light/1";
   }
 
   start() {
@@ -65,18 +65,22 @@ class Light extends Component {
 
 let lightTex = new Img(vecOne);
 function renderLights(cam) {
-  if (lightTex.size.x != settings.visionResolution) lightTex.resize(vecOne._mul(settings.visionResolution));
+  if (lightTex.size.x != settings.visionResolution) {
+    lightTex.resize(vecOne._mul(settings.visionResolution));
+    nde.tex["light/1"] = createLightGradient(vecOne._mul(settings.visionResolution), new Vec(255, 180, 80)); 
+  }
   lightTex.ctx.fillStyle = "rgb(0,0,0)";
   lightTex.ctx.fillRect(0, 0, lightTex.size.x, lightTex.size.y);
 
   cam.renderW = settings.visionResolution;
   cam._(lightTex, () => {
+    lightTex.ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < lights.length; i++) {
       renderLight(lights[i], cam);
     }
   });
 
-  
+
   let size = new Vec(cam.w, cam.w * cam.ar);
   renderer.image(lightTex, cam.pos._subV(size.mul(0.5)), size.mul(2));
 
@@ -101,4 +105,36 @@ function renderVision(cam) {
   world.grid.createMask(cam.pos, halfSize.x, cam.ar, visionMask);
 
   renderer.image(visionMask, cam.pos._subV(halfSize), size);
+}
+
+
+
+
+function createLightGradient(size, color) {
+  let img = new Img(size);
+  let middle = size._div(2);
+  let imageData = img.ctx.getImageData(0, 0, size.x, size.y);
+  let data = imageData.data;
+
+  let smallest = Math.min(size.x, size.y);
+
+  let pos = new Vec(0, 0);
+  for (pos.x = 0; pos.x < size.x; pos.x++) {
+    for (pos.y = 0; pos.y < size.y; pos.y++) {
+      let d = pos._subV(middle).mag();
+
+      let m = Math.pow(1 - d / (size.x / 2), 2);
+
+      let k = (pos.x + pos.y * size.x) * 4;
+      data[k++] = color.x * m;
+      data[k++] = color.y * m;
+      data[k++] = color.z * m;
+      data[k++] = 255;
+      
+    }
+  }
+  
+  img.ctx.putImageData(imageData, 0, 0);
+
+  return img;
 }

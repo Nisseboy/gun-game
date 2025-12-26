@@ -1,6 +1,6 @@
 updateInterval = 1000/10;
 maxPlayers = 12;
-url = "nisseboy.github.io/gun-game";
+url = "https://nisseboy.github.io/gun-game";
 
 class Server extends ServerBase {
   constructor() {
@@ -75,7 +75,10 @@ function createWorld() {
     player0,
 
     new Ob({pos: new Vec(1.5, 1.5)}, [
-      new Light({maxR: 3}),
+      new Light({maxR: 4}),
+    ]),
+    new Ob({pos: new Vec(3.5, 1.5)}, [
+      new Light({maxR: 4}),
     ]),
   ]);
 

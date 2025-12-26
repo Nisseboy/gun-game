@@ -90,6 +90,7 @@ class PlayerInput extends Component {
       }
     }
 
+    
     if (this.weaponUser.weapon != this.inventory.heldItem) this.weaponUser.weapon = this.inventory.heldItem;
     
     if (this.inventory.heldItem?.item.tags.split(",").includes("weapon")) {

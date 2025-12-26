@@ -38,7 +38,7 @@ class Gun extends Component {
     this.transform.size.from(texture.size).mul(gunScaling);
     this.spriteInfo = gunSpriteInfo[this.sprite.tex];
     this.item = this.getComponent(Item);
-    this.item.stackSize = 2;
+    this.item.stackSize = 1;
     this.item.tags = this.tags;
 
     this.ob.gun = this;

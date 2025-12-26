@@ -32,7 +32,7 @@ class Duck extends Component {
     if (this.vel.sqMag() != 0) {
       let diff = getDeltaAngle((Math.atan2(this.vel.y, this.vel.x)), this.transform.dir);
       this.transform.dir -= diff * 20 * dt;
-    }        
+    }      
   }
 
   move(v) {  
@@ -52,4 +52,10 @@ class Duck extends Component {
       this.transform.pos.y += (res ? dir * (res.d - eps * 2) : v.y);
     }
   }
+
+  remove() {
+    this.sprite.speed = 0;
+  }
+
+
 }

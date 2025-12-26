@@ -194,8 +194,8 @@ class SceneGame extends Scene {
 
       renderer.ctx.globalCompositeOperation = "multiply";
       renderVision(cam);
-      //renderer.ctx.globalCompositeOperation = "multiply";
-      //renderLights(cam);
+      renderer.ctx.globalCompositeOperation = "multiply";
+      renderLights(cam);
       renderer.ctx.globalCompositeOperation = "source-over";
 
       for (let i = 0; i < openInventories.length; i++) {
