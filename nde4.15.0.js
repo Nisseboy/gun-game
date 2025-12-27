@@ -183,6 +183,18 @@ class Vec extends Serializable {
     this.w = w;
     return this;
   }
+  /**
+   * Sets x,y from angle and length
+   * 
+   * @param {number} angle
+   * @param {number} length
+   * @return {Vec} this
+   */
+  fromAngle(angle, length = 1) {
+    this.x = Math.cos(angle) * length;
+    this.y = Math.sin(angle) * length;
+    return this;
+  }
 
   /**
    * Return the square length of this vector
@@ -224,6 +236,15 @@ class Vec extends Serializable {
   }
 
   /**
+   * Returns angle of this
+   * 
+   * @return {number} angle
+   */
+  angle() {
+    return Math.atan2(this.y, this.x);
+  }
+
+  /**
    * Normalizes this vector
    * 
    * @return {Vec} this
@@ -231,14 +252,6 @@ class Vec extends Serializable {
   normalize() {
     let mag = this.mag();
     if (mag != 0) this.div(mag);
-    return this;
-  }
-  angle() {
-    return Math.atan2(this.y, this.x);
-  }
-  fromAngle(angle, length = 1) {
-    this.x = Math.cos(angle) * length;
-    this.y = Math.sin(angle) * length;
     return this;
   }
 
@@ -461,7 +474,6 @@ let vecOne = new Vec(1, 1);
 
 
 
-/* src/Camera.js */
 class Camera extends Serializable {
   constructor(pos) {
     super();
@@ -609,7 +621,6 @@ class Camera extends Serializable {
     });
   }
 }
-
 
 
 
@@ -813,11 +824,70 @@ class Asset {
   constructor() {
     this.loading = false;
     this.path = "";
+  }
 
-    this.onload = undefined;
+  load({path, name}) {
+    return new Promise((resolve) => {
+      fetch(path).then(async res => {
+        this.data = await res.text();
+        resolve(this);
+      }).catch(e => {
+        console.error(`"${path}" not found`);
+
+        resolve(this);
+      });
+
+      
+      if (!nde.assets) nde.assets = {};
+      nde.assets[name] = this;
+    });
   }
 
   destroy() {}
+}
+
+
+
+
+
+/* src/assets/EvalAsset.js */
+let unloadedEvalAssets = [];
+
+class EvalAsset extends Asset {
+  constructor() {
+    super();
+
+    this.name = undefined;
+  }
+
+  load({path, name}) {
+    this.name = name; 
+
+    return new Promise((resolve) => {
+      fetch(path).then(async res => {
+        let data = await res.text();
+          this.data = data;
+        if (nde.hasStarted) this.eval();
+        else unloadedEvalAssets.push(this);
+
+        resolve(this);
+      }).catch(e => {
+        console.error(`"${path}" not found`);
+
+        resolve(this);
+      });
+
+      
+      if (!nde.assets) nde.assets = {};
+      nde.assets[name] = undefined;
+    });
+  }
+
+  eval() {
+    let ob = eval(this.data);
+    nde.assets[this.name] = ob;
+    return ob;
+  }
 }
 
 
@@ -839,7 +909,7 @@ class Renderable extends Asset {
 
 /* src/assets/Img.js */
 class Img extends Renderable {
-  constructor(size) {
+  constructor(size = vecOne) {
     super();
 
     this.size = size.copy();
@@ -851,6 +921,76 @@ class Img extends Renderable {
     this.ctx = this.canvas.getContext("2d");
     if (this.ctx == null) throw new Error("2d context not supported?");
   }
+
+
+  load({path, name}) {
+    return new Promise((resolve) => {
+
+      let split = name.split("/");
+      let lastName = split.splice(-1, 1)[0];
+      let segmentNames = lastName.split(",").map(e => split.join("/") + "/" + e);
+      let segments = (segmentNames.length > 1) ? [] : undefined;
+    
+      let image = new Image();
+      image.src = path;
+
+      image.onload = e => {
+        this.resize(new Vec(image.width, image.height));
+        this.ctx.drawImage(image, 0, 0);
+
+        if (segmentNames.length > 1) {
+          this.split(segmentNames.length, 1, segments);   
+          
+          for (let i of segments) {
+            i.loading = false;
+          }
+        }
+
+        resolve(this);
+        
+      };
+      image.onerror = e => {
+        console.error(`"${path}" not found`);
+
+        resolve(this);
+      };
+
+      if (!nde.tex) nde.tex = {};
+      nde.tex[name] = this;
+
+      if (segments) {
+        for (let i of segmentNames) {
+          let img = new Img();
+          img.path = path;
+          img.loading = true;
+
+          nde.tex[i] = img;
+
+          segments.push(img);
+        }
+      }
+    });
+  }
+
+  split(xSplits, ySplits = 1, arr = []) {
+    let i = 0;
+    let size = this.size._divV(new Vec(xSplits, ySplits)).floor();
+
+    for (let x = 0; x < xSplits; x++) {
+      for (let y = 0; y < ySplits; y++) {
+        if (!arr[i]) arr[i] = new Img(size);
+        let img = arr[i];
+        if (!img.size.isEqualTo(size)) img.resize(size);
+
+        img.ctx.drawImage(this.canvas, x * size.x, y * size.y, size.x, size.y, 0, 0, size.x, size.y);
+        
+        i++;
+      }
+    }
+
+    return arr;
+  }
+
 
   getImg() {return this};
 
@@ -1036,6 +1176,31 @@ class Aud extends Asset {
     this.isPlaying = false;
   }
 
+  load({path, name, gain = 1}) {
+    return new Promise((resolve) => {
+      this.baseGain = gain;
+      
+      fetch(path).then(res => {
+        res.arrayBuffer().then(arrayBuffer => {
+          audioContext.decodeAudioData(arrayBuffer).then(audioBuffer => {                    
+            this.audioBuffer = audioBuffer;
+            this.duration = audioBuffer.duration;
+
+            resolve(this);
+          });
+        });
+      }).catch(e => {
+        console.error(`"${path}" not found`);
+
+        resolve(this);
+      });
+
+      
+      if (!nde.aud) nde.aud = {};
+      nde.aud[name] = new AudPool(this);
+    });
+  }
+
   queueNodes() {
     if (audioContext.state != "suspended") {
       this.createNodes();
@@ -1059,7 +1224,6 @@ class Aud extends Asset {
 
     this.gainNode = audioContext.createGain();
     this.gainNode.gain.value = this.baseGain;
-    
   }
 
   copy() {
@@ -1081,7 +1245,7 @@ class Aud extends Asset {
 
   set gain(value) {
     if (!this.gainNode) return;
-    this.gainNode.gain.value = this.baseGain * value;
+    this.gainNode.gain.value = this.baseGain * value;    
   }
   get gain() {
     if (!this.gainNode) return 1;
@@ -1160,7 +1324,6 @@ function playAudio(audPool, pos) {
   aud.setPosition(pos.x, 1, pos.y);
   aud.gain = 1;
   aud.play();  
-  
   return aud;
 }
 
@@ -2052,7 +2215,6 @@ class UIText extends UIBase {
       textAlign: ["left", "top"],
     };
 
-    
     this.fillStyle(props.style);
 
     this.text = props.text;    
@@ -3622,7 +3784,6 @@ class Component extends Serializable {
   addComponent(...args) {return this.ob.addComponent(...args); }
   removeComponent(...args) {return this.ob.addComponent(...args); }
 
-
   from(data) {
     super.from(data);
 
@@ -3710,9 +3871,13 @@ class Sprite extends Component {
     return this._speed;
   }
 
+  start() {
+    this.ob.sprite = this;
+  }
+
   render() {
     if (!this.tex) return;
-
+    
     if (!this.texture) {
       this.tex = nde.getTex(this.tex);
       let texture = nde.tex[this.tex];
@@ -3731,6 +3896,7 @@ class Sprite extends Component {
         this.stateMachineImg = texture;
         this.stateMachineImg.speed = this.speed;
         this.stateMachineImg.e.listeners.push(this.ob.e);
+        
 
       } else {
         this.texture = texture;
@@ -3758,10 +3924,11 @@ class Sprite extends Component {
     return this;
   }
   strip() {
-    super.strip();
     delete this._texture;
     delete this.animation;
     delete this.stateMachineImg;
+    delete this.ob.sprite;
+    super.strip();
   }
 }
 
@@ -3876,6 +4043,7 @@ class AudioSource extends Component {
 
 
 
+
 /* src/ECS/Ob.js */
 class Ob extends Serializable {
   constructor(props = {}, components = [], children = []) {
@@ -3944,33 +4112,6 @@ class Ob extends Serializable {
   fire(...args) {return this.e.fire(...args)}
 
 
-
-
-  findId(id) {
-    if (this.id == id) return this;
-
-    for (let i = 0; i < this.children.length; i++) {
-      let res = this.children[i].findId(id);
-      
-      if (res) return res;
-    }
-  }
-
-  find(fn) {
-    let arr = this.findAll(fn, 1);
-    if (arr) return arr[0];
-  }
-  findAll(fn, limit = 9999, arr = []) {
-    if (fn(this)) arr.push(this);
-
-    for (let i = 0; i < this.children.length; i++) {
-      if (arr.length == limit) return arr;
-      
-      this.children[i].findAll(fn, limit, arr);
-    }
-
-    return arr;
-  }
   addComponent(...components) {
     for (let i = 0; i < components.length; i++) {
       let component = components[i];
@@ -4026,6 +4167,15 @@ class Ob extends Serializable {
     return arr;
   }
 
+  findId(id) {
+    if (this.id == id) return this;
+
+    for (let i = 0; i < this.children.length; i++) {
+      let res = this.children[i].findId(1);
+      
+      if (res) return res;
+    }
+  }
   randomizeId() {
     this.id = Math.floor(Math.random() * 1000000);
     return this.id;
@@ -4039,7 +4189,6 @@ class Ob extends Serializable {
     
     return table;
   }
-
 
   appendChild(...obs) {
     for (let i = 0; i < obs.length; i++) {
@@ -4110,6 +4259,7 @@ class Ob extends Serializable {
 
     return this;
   }
+  
   stripComponents() {
     for (let i = 0; i < this.components.length; i++) {
       this.components[i].strip();
@@ -4138,7 +4288,6 @@ class Ob extends Serializable {
       if (this.components[i].clientOnly) {
         this.removeComponent(this.components[i]);
         i--;
-        
       }
     }
 
@@ -4248,6 +4397,7 @@ Project:
 */  
 
 let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+let assetFolder = "assets";
 
 class NDE {
   constructor(mainElem) {
@@ -4257,11 +4407,16 @@ class NDE {
     this.targetFPS = undefined;
     this.transition = undefined;
     this.renderer = new Img(vecOne);
+    this.hasStarted = false;
 
     this.e = new EventHandler();
 
-    this.tex = {};
-    this.aud = {};
+    this.assetLoaders = {
+      "ob": EvalAsset,
+      "component": EvalAsset,
+      "png": Img,
+      "mp3": Aud,
+    };
 
     this.mouse = new Vec(0, 0);
     this.mainElemBoundingBox = new Vec(0, 0, 1, 1);
@@ -4296,6 +4451,10 @@ class NDE {
     let interval = setInterval(e => {
       if (this.unloadedAssets.length == 0) {        
         clearInterval(interval);
+        this.hasStarted = true;
+        for (let a of unloadedEvalAssets) {
+          a.eval();
+        }
         
         this.fire("beforeSetup");
 
@@ -4307,7 +4466,6 @@ class NDE {
         this.renderer.set("imageSmoothing", false);
         
         this.fire("afterSetup");
-
 
         this.setupHandlers();
 
@@ -4331,10 +4489,10 @@ class NDE {
   setupHandlers() {
     window.addEventListener("resize", e => {this.resize(e)});
 
-    document.addEventListener("keydown", e => {      
-      if (audioContext.state != "running") {
+    document.addEventListener("keydown", e => {
+      if (!audioContext.state == "running") {
         audioContext.resume();
-
+        
         setTimeout(() => {
           this.fire("audioContextStarted");
         }, 0);
@@ -4385,7 +4543,7 @@ class NDE {
     document.addEventListener("mousedown", e => {
       if (audioContext.state != "running") {
         audioContext.resume();
-
+        
         setTimeout(() => {
           this.fire("audioContextStarted");
         }, 0);
@@ -4648,56 +4806,33 @@ class NDE {
   }
 
 
-  loadImg(path) {
-    let img = new Img(new Vec(1, 1));
-    let image = new Image();
-    image.src = path;
+  loadAsset(assetDescriptor) {
+    if (typeof assetDescriptor == "string") assetDescriptor = {path: assetDescriptor};
 
-    img.loading = true;
-    img.path = path;
-    this.unloadedAssets.push(img);
+    let path = assetDescriptor.path;
+    let split1 = path.split(".");
+    let fileType = split1.splice(-1, 1)[0];
+    path = split1.join(".");
 
-    image.onload = e => {
-      img.resize(new Vec(image.width, image.height));
-      img.ctx.drawImage(image, 0, 0);
-      img.loading = false;
-      if (img.onload) img.onload();
-
-      this.unloadedAssets.splice(this.unloadedAssets.indexOf(img), 1);
-    };
-    image.onerror = e => {
-      console.error(`"${path}" not found`);
-
-      this.unloadedAssets.splice(this.unloadedAssets.indexOf(img), 1);
-    };
-
-    return img;
-  }
-  loadAud(path, props = {}) {
-    let aud = new Aud({baseGain: props.gain || 1});
-    aud.loading = true;
-    aud.path = path;
+    if (!assetDescriptor.name) assetDescriptor.name = path;
     
-    this.unloadedAssets.push(aud);
-    
-    fetch(path).then(res => {
-      res.arrayBuffer().then(arrayBuffer => {
-        audioContext.decodeAudioData(arrayBuffer).then(audioBuffer => {                    
-          aud.audioBuffer = audioBuffer;
-          aud.loading = false;
-          aud.duration = audioBuffer.duration;
-          if (aud.onload) aud.onload();
-          
-          this.unloadedAssets.splice(this.unloadedAssets.indexOf(aud), 1);
-        });
-      });
-    }).catch(e => {
-      console.error(`"${path}" not found`);
+    let assetLoader = this.assetLoaders[fileType];
+    if (!assetLoader) {
+      console.error("Unsupported filetype: " + assetDescriptor.path);
+      return;
+    }
+    assetDescriptor.path = assetFolder + "/" + assetDescriptor.path;
 
+    let asset = new assetLoader();
+    this.unloadedAssets.push(asset);
+    asset.loading = true;
+    asset.path = assetDescriptor.path;
+    asset.load(assetDescriptor).then(() => {
+      asset.loading = false;
       this.unloadedAssets.splice(this.unloadedAssets.indexOf(asset), 1);
     });
-
-    return aud;
+    
+    return asset;
   }
 
 

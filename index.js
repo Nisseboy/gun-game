@@ -4,7 +4,10 @@ nde.uiDebug = false;
 //nde.targetFPS = 60;
 
 let renderer = nde.renderer;
-preloadTextures();
+for (let p of assetPaths) {
+  nde.loadAsset(p);
+}
+preloadAnimations();
 
 
 let settingsName = "gunGameSettings";
