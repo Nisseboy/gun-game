@@ -6,6 +6,7 @@ class Light extends Component {
 
     this.maxR = props.maxR || 2;
     this.tex = props.tex || "light/1";
+    this.brightness = props.brightness || 1;
   }
 
   start() {
@@ -13,12 +14,14 @@ class Light extends Component {
 
     this.cached = false;
     this.lastPos = this.transform.pos.copy();
+    this.lastDir = this.transform.dir;
   }
 
   renderMask() {
-    if (!this.lastPos.isEqualTo(this.transform.pos)) {
+    if (!this.lastPos.isEqualTo(this.transform.pos) || this.lastDir != this.transform.dir) {
       this.cached = false;
       this.lastPos.from(this.transform.pos);
+      this.lastDir = this.transform.dir;
     }
     if (!this.mask) {
       this.cached = false;
@@ -38,10 +41,18 @@ class Light extends Component {
     ctx.globalCompositeOperation = "source-over";
     world.grid.createMask(this.transform.pos, this.maxR, 1, this.mask);
 
+    let rotate = (this.transform.dir && this.tex != "light/1");
     ctx.globalCompositeOperation = "source-in";
-    ctx.drawImage(nde.tex[this.tex].canvas, 0, 0, this.mask.size.x, this.mask.size.y);
+    if (rotate) {
+      ctx.save();
+      ctx.translate(this.mask.size.x / 2, this.mask.size.y / 2);
+      ctx.rotate(this.transform.dir);
+      ctx.drawImage(nde.tex[this.tex].canvas, -this.mask.size.x / 2, -this.mask.size.y / 2, this.mask.size.x, this.mask.size.y);
+      ctx.restore();
+    } else {
+      ctx.drawImage(nde.tex[this.tex].canvas, 0, 0, this.mask.size.x, this.mask.size.y);
+    }
     
-
     return this.mask;
   }
 
@@ -57,6 +68,7 @@ class Light extends Component {
 
     this.maxR = data.maxR;
     this.tex = data.tex;
+    this.brightness = data.brightness;
 
     return this;
   }
@@ -68,17 +80,31 @@ function renderLights(cam) {
   if (lightTex.size.x != settings.visionResolution) {
     lightTex.resize(vecOne._mul(settings.visionResolution));
     nde.tex["light/1"] = createLightGradient(vecOne._mul(settings.visionResolution), new Vec(255, 180, 80)); 
+    nde.tex["light/cone20"] = createLightCone(vecOne._mul(settings.visionResolution), new Vec(255, 180, 80), 20); 
+    nde.tex["light/cone45"] = createLightCone(vecOne._mul(settings.visionResolution), new Vec(255, 180, 80), 45); 
   }
+
   lightTex.ctx.fillStyle = "rgb(0,0,0)";
   lightTex.ctx.fillRect(0, 0, lightTex.size.x, lightTex.size.y);
 
+  let tempW = cam.renderW;
   cam.renderW = settings.visionResolution;
   cam._(lightTex, () => {
     lightTex.ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < lights.length; i++) {
-      renderLight(lights[i], cam);
+      let light = lights[i];
+      let sqd = light.transform.pos._subV(cam.pos).sqMag();
+      if (sqd > (light.maxR + cam.w / 2) ** 2) {
+        light.mask = undefined;
+        continue;
+      }
+
+      if (light.brightness != 1) lightTex.ctx.filter = `brightness(${lights[i].brightness*100}%)`;
+      renderLight(light, cam);
+      if (light.brightness != 1) lightTex.ctx.filter = `brightness(100%)`;
     }
   });
+  cam.renderW = tempW;
 
 
   let size = new Vec(cam.w, cam.w * cam.ar);
@@ -123,13 +149,47 @@ function createLightGradient(size, color) {
     for (pos.y = 0; pos.y < size.y; pos.y++) {
       let d = pos._subV(middle).mag();
 
-      let m = Math.pow(1 - d / (size.x / 2), 2);
+      let m = Math.max(1 - d / (size.x / 2), 0) ** 2;
 
       let k = (pos.x + pos.y * size.x) * 4;
       data[k++] = color.x * m;
       data[k++] = color.y * m;
       data[k++] = color.z * m;
       data[k++] = 255;
+      
+    }
+  }
+  
+  img.ctx.putImageData(imageData, 0, 0);
+
+  return img;
+}
+
+function createLightCone(size, color, angle) {
+  let img = new Img(size);
+  let middle = size._div(2);
+  let imageData = img.ctx.getImageData(0, 0, size.x, size.y);
+  let data = imageData.data;
+
+  let smallest = Math.min(size.x, size.y);
+
+  let pos = new Vec(0, 0);
+  for (pos.x = 0; pos.x < size.x; pos.x++) {
+    for (pos.y = 0; pos.y < size.y; pos.y++) {
+      let diff = pos._subV(middle);
+      let d = diff.mag();
+
+      let aTerm = Math.max(1 - d / (size.x / 2), 0) ** 2;
+      let bTerm = Math.max((1 - Math.abs(diff.angle() / (angle / 180 * Math.PI) * 2)), 0);
+
+      let m = Math.min(aTerm * bTerm, 1);
+
+      let k = (pos.x + pos.y * size.x) * 4;
+      data[k++] = color.x * m;
+      data[k++] = color.y * m;
+      data[k++] = color.z * m;
+      if (color.w) data[k++] = color.w * m;
+      else data[k++] = 255;
       
     }
   }

@@ -55,7 +55,7 @@ class SceneSettings extends Scene {
           }),
           new UISettingRange({
             name: "lightResolution", displayName: "Light Resolution",
-            value: 1024,
+            value: 512,
             min: 64, max: 2048, step: 1,
 
             style: {...rangeStyle,},

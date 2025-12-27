@@ -23,11 +23,13 @@ class WeaponUser extends Component {
     if (this.weapon) {
       this.reloadProgress = 0;
       this.reloading = false;
+
+      if (this.weapon.item?.held) {        
+        setActive(this.weapon, false);
+        setParent(this.weapon, itemHolder);
+      }
     }
-    if (this.weapon?.held) {
-      setActive(this.weapon, false);
-      setParent(this.weapon, itemHolder);
-    }
+    
 
     this._weapon = value;
 

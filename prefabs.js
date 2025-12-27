@@ -104,7 +104,7 @@ let MachineGun = GunBase.copy();
 
   gun.tags = "weapon,primary";
   gun.ammoType = AMMOTYPE.heavy;
-  gun.maxAmmo = 30;
+  gun.maxAmmo = 20;
   gun.ammo = 20;
   gun.damage = 20;
   gun.cooldown = 0.2;

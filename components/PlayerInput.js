@@ -27,6 +27,10 @@ class PlayerInput extends Component {
     this.inventory.allowedHeldSlots = [0, 1];
     this.inventory.heldIndex = 0; 
 
+    this.light = new Light({maxR: 2, brightness: 0.5, tex: "light/1"});
+    this.light.clientOnly = true;
+    this.addComponent(this.light);
+
     return;
     for (let slot of this.inventory.slots) {      
       if (slot.tag) continue;
@@ -41,7 +45,7 @@ class PlayerInput extends Component {
     }
   }
   
-  update(dt) {
+  update(dt) {    
     let speedMult = nde.getKeyPressed("Run") ? 2 : 1;
 
     this.duck.move(new Vec(

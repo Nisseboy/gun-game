@@ -123,7 +123,7 @@ class Grid extends Component {
 
     ctx.fillStyle = "rgb(255, 255, 255)";
     ctx.strokeStyle = "rgb(255, 255, 255)";
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 15;
     ctx.beginPath();
 
     let dirStep = Math.PI * 2 / settings.visionSamples; 

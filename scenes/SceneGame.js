@@ -167,7 +167,7 @@ class SceneGame extends Scene {
   }
 
   update(dt) {  
-    this.playerInput.mousePos.from(this.cam.untransformVec(nde.mouse));
+    this.playerInput.mousePos.from(this.cam.untransformVec(nde.mouse));    
     world.update(dt);
     
 
