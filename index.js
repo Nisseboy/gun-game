@@ -26,12 +26,16 @@ nde.controls = {
   
   "Inventory": "e",
   "Interact": "f",
+  "Open Chat": "Enter",
 
   "Shoot": "mouse0",
   "Reload": "r",
   "Drop Item": "g",
   "Primary Weapon": "1,!",
   "Secondary Weapon": "2,\"",
+
+  "Editor Place": "mouse0",
+  "Editor Break": "mouse2",
 
 
   "Pause": "Escape",
@@ -48,18 +52,26 @@ nde.on("keydown", e => {
 nde.on("afterSetup", () => {
   Object.assign(scenes, {
     game: new SceneGame(), 
+    editor: new SceneEditor(), 
+
     mainMenu: new SceneMainMenu(),
     settings: new SceneSettings(),
   })
   processGunSprites();
+  processRooms();
 
-  initClient();
+  serverId = initClient();
+  if (serverId) scenes.mainMenu.lobbyDisplay.text = serverId;
 
   nde.setScene(scenes.mainMenu);
 
+  if (serverId == "editor") {
+    nde.setScene(scenes.editor);
+    return;
+  }
+
   if (client) {
     scenes.game.setupListeners();
-    scenes.mainMenu.lobbyDisplay.text = client.serverId;
 
     if (settings.autoConnect)  {
       client.on("world", () => {
@@ -73,6 +85,7 @@ nde.on("afterSetup", () => {
       }) 
     };
   }
+
 });
 
 nde.on("update", dt => {

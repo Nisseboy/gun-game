@@ -13,9 +13,13 @@ function initClient() {
   let id = document.location.search.split("?id=")[1];
 
   if (id == "host") {
-    server = new Server();
     client = new ClientHost();
-    return;
+    server = new Server();
+    return id;
+  }
+
+  if (id == "editor") {
+    return id;
   }
 
   if (id) {
@@ -29,6 +33,8 @@ function initClient() {
   setInterval(() => {
     if (settings.autoConnect) checkDevServer();
   }, 1000);
+
+  return id;
 }
 function connectToServer(id) {  
   let split = id.split("=");

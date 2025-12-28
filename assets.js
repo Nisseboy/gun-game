@@ -1,4 +1,14 @@
 let assetPaths = [
+//Rooms
+  {"path": "rooms/testRoom.ob"},
+  {"path": "rooms/testRoom2.ob"},
+
+//Materials
+  {"path": "floor/1.png"},
+  
+  {"path": "wall/1.png"},
+
+//Duck
   {"path": "duck/1.png"},
   {"path": "duck/dead.png"},
   {"path": "duck/rot/1,2,3,4,5,6,7,8.png"},
@@ -8,7 +18,7 @@ let assetPaths = [
   {"path": "duck/step/3.mp3"},
   {"path": "duck/step/4.mp3"},
 
-
+//Weapons
   {"path": "gun/pistol.png"},
   {"path": "gun/shotgun.png"},
   {"path": "gun/sniper.png"},
@@ -22,7 +32,7 @@ let assetPaths = [
   {"path": "gun/shotgunReload.mp3"},
   {"path": "gun/sniperShot.mp3"},
 
-  
+//Inventory
   {"path": "crosshair.png"},
 
   {"path": "inventory/slot.png"},

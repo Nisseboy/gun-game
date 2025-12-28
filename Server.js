@@ -2,6 +2,8 @@ updateInterval = 1000/10;
 maxPlayers = 12;
 url = "https://nisseboy.github.io/gun-game";
 
+let serverId;
+
 class Server extends ServerBase {
   constructor() {
     super();
@@ -10,14 +12,18 @@ class Server extends ServerBase {
   init() {
     super.init();
     scenes.game.loadWorld(createWorld());
-    client.fire("world");
+    setTimeout(()=>{client.fire("world");}, 0);
 
     this.on("connection", (id, conn) => {      
       this.fire("createEntity", id, this.createPlayer(id).serialize(), world.id);
       this.send(id, "world", world.serialize());
+      this.sendAll("sendChat", undefined, id + " connected.");
     });
     this.on("disconnection", (id, conn) => {
-      this.fire("removeEntity", id, id);
+      this.sendAll("mult", [
+        ["sendChat", undefined, id + " disconnected."],
+        ["removeEntity", id],
+      ]);
     });
     this.on("ping", (id) => {      
       this.send(id, "ping");
@@ -52,7 +58,7 @@ class Server extends ServerBase {
 function createWorld() {
   noise.seed(5);
   
-  let grid = new Grid(new Vec(5, 5));
+  let grid = new Grid({size: new Vec(5, 5)});
   grid.random();
 
   let itemHolder = new Ob({name: "itemHolder", id: 1});

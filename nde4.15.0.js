@@ -474,6 +474,7 @@ let vecOne = new Vec(1, 1);
 
 
 
+/* src/Camera.js */
 class Camera extends Serializable {
   constructor(pos) {
     super();
@@ -621,6 +622,7 @@ class Camera extends Serializable {
     });
   }
 }
+
 
 
 
@@ -1950,12 +1952,12 @@ class UIBase {
     nde.renderer.set("fill", this.style.scroll.fill);
     
     
-    if (fraction.x < 1) {
+    if (this.style.scroll.x && fraction.x < 1) {
       let max = 1 - fraction.x;
       nde.renderer.rect(new Vec(this.pos.x + scrollFraction.x * max * this.size.x, this.pos.y + this.size.y - width), new Vec(this.size.x * fraction.x, width));      
     }
     
-    if (fraction.y < 1) {
+    if (this.style.scroll.y && fraction.y < 1) {
       let max = 1 - fraction.y;
       nde.renderer.rect(new Vec(this.pos.x + this.size.x - width, this.pos.y + scrollFraction.y * max * this.size.y), new Vec(width, this.size.y * fraction.y));
       
@@ -2315,6 +2317,58 @@ class UIButtonImage extends UIButton {
 
 
 
+/* src/ui/ScenePopup.js */
+class ScenePopup extends Scene {
+  constructor() {
+    super();
+
+    this.cam = new Camera(new Vec(800, 450));
+    this.cam.w = 1600;
+    this.cam.renderW = nde.w;
+
+    this.img = undefined;
+
+    this.ui = new UIRoot({
+      children: [
+        new UIBase({
+          style: {
+            pos: new Vec(800, 450),
+            selfPos: new Vec(-0.5, -0.5),
+          },
+        }),
+      ]
+    });   
+  }
+
+
+  inputdown(key) {
+    if (nde.getKeyEqual(key,"Pause")) {
+      nde.resolvePopup();
+    }
+  }
+
+  captureScreen() {
+    this.img = new Img(new Vec(nde.w, nde.w * nde.ar));
+    nde.fire("render");
+    this.img.ctx.imageSmoothingEnabled = false;
+    this.img.image(nde.renderer, vecZero, this.img.size);
+  }
+
+  render() {
+    let cam = this.cam;
+    cam.renderW = nde.w;
+
+    cam._(renderer, ()=>{
+      renderer.image(this.img, vecZero, new Vec(cam.w, cam.w * cam.ar));
+      this.ui.renderUI();
+    });
+  }
+}
+
+
+
+
+
 /* src/ui/settings/UISettingBase.js */
 class UISettingBase extends UIBase {
   constructor(props) {
@@ -2322,6 +2376,8 @@ class UISettingBase extends UIBase {
     this.interactable = true;
 
     this.value = props.value;
+    this.lastValue = this.value;
+    this.focused = false;
 
     this.name = props.name;
     this.displayName = props.displayName;
@@ -2334,12 +2390,22 @@ class UISettingBase extends UIBase {
   setValue(newValue) {
     this.value = newValue;
   }
+  setFocus(newFocus) {
+    this.focused = newFocus;
+
+    if (!newFocus) {
+      this.fireChange(false);
+    }
+  }
 
   fireInput() {
     this.fire("input", this.value);
   }
-  fireChange() {
-    this.fire("change", this.value);
+  fireChange(wasSubmitted = true) {
+    if (JSON.stringify(this.lastValue) == JSON.stringify(this.value)) return;
+    this.lastValue = this.value;
+
+    this.fire("change", this.value, wasSubmitted);
   }
 }
 
@@ -2893,6 +2959,7 @@ class UISettingText extends UISettingBase {
         clickTime: 0.5,
         multiLine: false,
         numberOnly: false,
+        autoScroll: false,
       },
 
       text: {
@@ -2938,8 +3005,7 @@ class UISettingText extends UISettingBase {
     this.keydownGlobalFunc = e => {return this.keydownGlobal(e)}
     this.on("mousedown", e=>{
       if (!this.focused) {
-        nde.on("mousedown", this.mousedownGlobalFunc, true);
-        nde.on("keydown", this.keydownGlobalFunc, true);
+        this.setFocus(true);
       }
       this.focused = true;
 
@@ -2975,7 +3041,7 @@ class UISettingText extends UISettingBase {
         
       }
 
-      if (activeSettingText && activeSettingText != this) activeSettingText.endFocus();
+      if (activeSettingText && activeSettingText != this) activeSettingText.setFocus(false);
       activeSettingText = this;
       this.forceHover = true;
       nde.on("mousemove", this.mousemoveGlobalFunc, true);
@@ -2988,16 +3054,37 @@ class UISettingText extends UISettingBase {
     this.value = "" + this.value;
     
     this.recalculateSize();
+    
+    if (this.cursor) this.constrainCursor(this.cursor);
+    if (this.cursor2) this.constrainCursor(this.cursor2);
+  }
+
+  setFocus(newFocus) {
+    super.setFocus(newFocus);
+
+    if (this.focused) {
+      nde.on("mousedown", this.mousedownGlobalFunc, true);
+      nde.on("keydown", this.keydownGlobalFunc, true);
+    } else {
+      nde.off("mousedown", this.mousedownGlobalFunc);
+      nde.off("keydown", this.keydownGlobalFunc);
+    }
   }
 
   recalculateSize() {
+    let wasAtBottom = this.contentSize.y - this.size.y <= this.scroll.y;
+
     this.children[0].text = this.value;
     this.children[0].calculateSize();
     this.calculateSize();
+
+    if (this.style.editor.autoScroll && wasAtBottom) {
+      this.scroll.y = this.contentSize.y - this.size.y;
+    }
   }
 
   mousedownGlobal(e) {
-    this.endFocus();
+    this.setFocus(false);
   }
   mousemoveGlobal(e) {        
     if (this.clicksInRow != 0) return;
@@ -3016,7 +3103,7 @@ class UISettingText extends UISettingBase {
   }
 
   keydownGlobal(e) {
-    if (["Control", "Shift", "Alt", "AltGraph"].includes(e.key)) return;
+    if (["Control", "Shift", "Alt", "AltGraph"].includes(e.key)) return false;
     this.cursorTimer.elapsedTime = this.style.editor.blinkTime;
 
     let ctrl = e.ctrlKey;
@@ -3057,8 +3144,8 @@ class UISettingText extends UISettingBase {
       this.moveScreenToCursor(this.cursor);
     }
     if (e.key == "Escape") {
-      this.endFocus();
-      return;
+      this.setFocus(false);
+      return false;
     }
     if (ctrl) {
       let key = e.key.toLowerCase();
@@ -3170,7 +3257,7 @@ class UISettingText extends UISettingBase {
             this.fillCursorLeft(cursor);
           }
         } else {
-          if (unselected) return;
+          if (unselected) return false;
           this.moveCursorLeft(cursor);
         }
       }
@@ -3184,7 +3271,7 @@ class UISettingText extends UISettingBase {
             this.fillCursorRight(cursor);
           }
         } else {
-          if (unselected) return;
+          if (unselected) return false;
           this.moveCursorRight(cursor);
         }
       }
@@ -3201,12 +3288,13 @@ class UISettingText extends UISettingBase {
       if (this.style.editor.multiLine) {
         newText = "\n";
       } else {
-        this.endFocus();
+        this.fireChange(true);
+        this.setFocus();
       }
     }
     if (e.key.length == 1) newText = e.key;
 
-    if (this.style.editor.numberOnly && !["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "*", "/", "+", "-", "(", ")"].includes(newText)) return;
+    if (this.style.editor.numberOnly && !["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "*", "/", "+", "-", "(", ")"].includes(newText)) return false;
 
 
 
@@ -3223,13 +3311,6 @@ class UISettingText extends UISettingBase {
     this.fireInput();
 
     return false;
-  }
-
-  endFocus() {
-    nde.off("mousedown", this.mousedownGlobalFunc);
-    nde.off("keydown", this.keydownGlobalFunc);
-    this.focused = false;
-    this.fireChange();
   }
 
   getMousePos() {
@@ -3446,6 +3527,13 @@ class UISettingText extends UISettingBase {
     this.positionChildren();
   }
 
+  constrainCursor(cursor) {
+    let lines = this.getLines();
+    if (cursor.y >= lines.length) cursor.y = lines.length - 1;
+    let line = lines[this.cursor.y];
+    if (cursor.x > line.length) cursor.x = line.length;
+  }
+
   render() {        
     this.rendererTransform = nde.renderer.getTransform();
 
@@ -3485,7 +3573,7 @@ class UISettingText extends UISettingBase {
 
 //https://stackoverflow.com/questions/4434076/best-way-to-alphanumeric-check-in-javascript
 function isAlphaNumeric(char) {
-  let code = char.charCodeAt(i);
+  let code = char.charCodeAt(0);
   return ((code > 47 && code < 58) || // numeric (0-9)
       (code > 64 && code < 91) || // upper alpha (A-Z)
       (code > 96 && code < 123)) // lower alpha (a-z)
@@ -3896,7 +3984,6 @@ class Sprite extends Component {
         this.stateMachineImg = texture;
         this.stateMachineImg.speed = this.speed;
         this.stateMachineImg.e.listeners.push(this.ob.e);
-        
 
       } else {
         this.texture = texture;
@@ -4050,6 +4137,7 @@ class Ob extends Serializable {
     super();
 
     this.name = props.name || "";
+    this.children = [];
     this.id = props.id;
     if (this.id == undefined) this.randomizeId();
     this.active = true;
@@ -4069,7 +4157,6 @@ class Ob extends Serializable {
 
 
     this.parent = undefined;
-    this.children = [];
     this.appendChild(...children);
 
 
@@ -4178,6 +4265,9 @@ class Ob extends Serializable {
   }
   randomizeId() {
     this.id = Math.floor(Math.random() * 1000000);
+
+    for (let i = 0; i < this.children.length; i++) this.children[i].randomizeId();
+
     return this.id;
   }
   createLookupTable(table = {}) {
@@ -4435,7 +4525,10 @@ class NDE {
     this.hoveredUIElement = undefined;
     this.hoveredUIRoot = undefined;
     this.uiDebug = false;
-    
+
+    this.resolvePopupFunc = undefined;
+    this.scenePopup = undefined;
+
     this.mainElem = mainElem;
     this.mainImg = new Img(new Vec(1, 1));
     this.unloadedAssets = [];
@@ -4806,6 +4899,26 @@ class NDE {
   }
 
 
+  openPopup(ui = new UIBase({})) {
+    return new Promise(resolve => {
+      this.resolvePopupFunc = resolve;
+
+      if (!this.scenePopup) this.scenePopup = new ScenePopup();
+      this.scenePopup.lastScene = this.scene;
+      this.scenePopup.captureScreen();
+      this.scenePopup.ui.children[0].children[0] = ui;
+      this.scenePopup.ui.initUI();
+      this.setScene(this.scenePopup);
+    });
+  }
+  resolvePopup(...args) {
+    if (!this.resolvePopupFunc) return;
+    
+    this.resolvePopupFunc(...args);
+    this.resolvePopupFunc = undefined;
+    this.setScene(this.scenePopup.lastScene);
+  }
+
   loadAsset(assetDescriptor) {
     if (typeof assetDescriptor == "string") assetDescriptor = {path: assetDescriptor};
 
@@ -4834,7 +4947,6 @@ class NDE {
     
     return asset;
   }
-
 
   getTex(texOrTexture) {
     if (typeof texOrTexture == "string") return texOrTexture;

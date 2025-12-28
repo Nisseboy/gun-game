@@ -9,6 +9,72 @@ class SceneGame extends Scene {
     this.cam = new Camera(new Vec(0, 0));
     this.cam.w = 16;
     this.cam.renderW = nde.w;
+
+    this.uicam = new Camera(new Vec(800, 450));
+    this.uicam.w = 1600;
+    this.uicam.renderW = nde.w;
+
+    this.uiChat = new UISettingText({
+      value: "",
+
+      style: {
+        size: new Vec(400, 200),
+        padding: 5,
+        editor: {
+          readOnly: true,
+          multiLine: true,
+          autoScroll: true,
+        },
+        fill: "rgba(0, 0, 0, 0.2)",
+        
+        scroll: {
+          alwaysShow: true,
+          fill: buttonStyle.scroll.fill,
+        },
+      },
+    });
+    this.uiChatBox = new UISettingText({
+      value: "",
+
+      style: {
+        size: new Vec(400, 40),
+        fill: "rgba(0, 0, 0, 0.2)",
+        padding: 5,
+        scroll: {y: false, alwaysShow: true, fill: buttonStyle.scroll.fill},
+      },
+
+      events: {change: [(value, wasSubmitted) => {
+        this.uiChatBox.setValue("");
+
+        if (!value || !wasSubmitted) return;
+        
+        sendChat(this.player, value);
+      }]},
+    }),
+    this.ui = new UIRoot({
+      style: {
+        size: new Vec(1600, 900),
+      },
+      children: [
+        new UIBase({
+          style: {
+            position: "absolute",
+            pos: new Vec(0, 900),
+            selfPos: new Vec(0, -1),
+            direction: "column",
+            align: new Vec(0, 2),
+            gap: 4,
+            padding: 5,
+          },
+
+          children: [
+            this.uiChat,
+            this.uiChatBox,
+          ],
+        }),
+      ],
+    }); 
+    this.shownChatMessages = [];
   }
 
   setupListeners() {
@@ -86,6 +152,13 @@ class SceneGame extends Scene {
         });
       }
     });
+    client.on("sendChat", (entityId, message) => {
+      let entity = idLookup[entityId];
+      
+      this.uiChat.setValue(this.uiChat.value + `\n${entity?entity.name + ": ":""}${message}`);
+      this.uiChat.parent.positionChildren();      
+      this.shownChatMessages.push({time: 1.5, entity, message});
+    });
 
     //Position entity smoothly
     client.on("p", (entityId, pos, dir) => {                 
@@ -161,6 +234,9 @@ class SceneGame extends Scene {
     if (nde.getKeyEqual(key,"Pause")) {
       nde.transition = new TransitionSlide(scenes.mainMenu, new TimerTime(0.2));
     }
+    if (nde.getKeyEqual(key,"Open Chat")) {
+      this.uiChatBox.setFocus(true);
+    }
   }
   inputup(key) {
     
@@ -173,11 +249,23 @@ class SceneGame extends Scene {
 
     this.cam.pos.from(this.player.transform.pos);
     moveListener(this.cam.pos);
+
+    for (let i = 0; i < this.shownChatMessages.length; i++) {
+      let m = this.shownChatMessages[i];
+      m.time -= dt;
+
+      if (m.time <= 0) {
+        this.shownChatMessages.splice(i, 1);
+        i--;
+      } 
+    }
   }
 
   render() {
     let cam = this.cam;
     cam.renderW = nde.w;
+    let uicam = this.uicam;
+    uicam.renderW = nde.w;
     renderer.set("fill", "rgba(255, 255, 255, 1");
 
 
@@ -192,14 +280,25 @@ class SceneGame extends Scene {
       world.grid.cam = cam;
       world.render();
 
+      
       renderer.ctx.globalCompositeOperation = "multiply";
       renderVision(cam);
       renderer.ctx.globalCompositeOperation = "multiply";
       renderLights(cam);
       renderer.ctx.globalCompositeOperation = "source-over";
 
+
       for (let i = 0; i < openInventories.length; i++) {
         openInventories[i].renderSlots();
+      }
+
+      renderer.set("textAlign", ["center", "bottom"]);
+      renderer.set("font", "0.3px monospace");
+      renderer.set("fill", "rgb(255, 255, 255)");
+      for (let i = 0; i < this.shownChatMessages.length; i++) {
+        let m = this.shownChatMessages[i];
+        if (!m.entity) continue;
+        renderer.text(m.message, m.entity.transform.pos._subV(new Vec(0, 0.4)));
       }
     });
 
@@ -240,6 +339,11 @@ class SceneGame extends Scene {
         renderer.text(`You are dead [${Math.ceil(5 - this.deathTimer.elapsedTime)}]`, new Vec(1, cam.w * cam.ar * 0.5));
       }
     });
+
+    uicam._(renderer, () => {
+      this.uiChat.parent.style.render = (this.uiChatBox.focused || this.shownChatMessages.length > 0) ? "normal" : "hidden";
+      this.ui.renderUI();
+    });
   }
 }
 
@@ -279,10 +383,15 @@ function changeHp(entity, hp) {
 function kill(entity) {
   client.fire("kill", entity.id);
   client.send("kill", entity.id);
+  sendChat(undefined, entity.name + " died.");
 }
-
 function checkDead(entity) {
   if (entity.entity.hp <= 0) {
     kill(entity);
   }
+}
+
+function sendChat(entity, message) {
+  client.fire("sendChat", entity?.id, message);
+  client.send("sendChat", entity?.id, message);
 }

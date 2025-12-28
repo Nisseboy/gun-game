@@ -1,38 +1,65 @@
+let allRooms = [];
 
 class Grid extends Component {
-  constructor(size) {
+  constructor(props = {}) {
     super();
 
-    this.size = size;
-    this.g = [];
+    this.size = props.size || vecOne;
+    this.g = props.g || new Array(this.size.x * this.size.y).fill(0);
     this.cam = undefined;
   }
 
   start() {
     this.ob.grid = this;
+
+    
+    this.noiseImg = new Img(new Vec(432, 432 * nde.ar));
+    let imageData = this.noiseImg.ctx.getImageData(0, 0, this.noiseImg.size.x, this.noiseImg.size.y);
+    let pxls = imageData.data;
+    for (let i = 0; i < this.noiseImg.size.x * this.noiseImg.size.y * 4;) {
+      let c = Math.random() * 255;
+      pxls[i++] = c;
+      pxls[i++] = c;
+      pxls[i++] = c;
+      pxls[i++] = (Math.random() > 0.5) ? 10 : 0;
+    }
+    this.noiseImg.ctx.putImageData(imageData, 0, 0);
   }
 
   render() {
+    let cam = this.cam;
     renderer.set("stroke", "rgba(0, 0, 0, 0)")
 
 
     let bounds = new Vec(
-      Math.max(Math.floor(this.cam.pos.x - this.cam.w / 2), 0),
-      Math.max(Math.floor(this.cam.pos.y - this.cam.w / 2 * nde.ar), 0),
-      Math.min(Math.floor(this.cam.pos.x + this.cam.w / 2 + 1), this.size.x),
-      Math.min(Math.floor(this.cam.pos.y + this.cam.w / 2 * nde.ar + 1), this.size.y),
+      Math.max(Math.floor(cam.pos.x - cam.w / 2), 0),
+      Math.max(Math.floor(cam.pos.y - cam.w / 2 * cam.ar), 0),
+      Math.min(Math.floor(cam.pos.x + cam.w / 2 + 1), this.size.x),
+      Math.min(Math.floor(cam.pos.y + cam.w / 2 * cam.ar + 1), this.size.y),
     );
-    let p = new Vec(0, 0), mat = 0;
+    let p = new Vec(0, 0), mat; 
     for (p.x = bounds.x; p.x < bounds.z; p.x++) {
       for (p.y = bounds.y; p.y < bounds.w; p.y++) {
-        mat = this.g[p.x + p.y * this.size.x];
-
-        if (!mat) continue;
-
-        renderer.set("fill", "rgba(189, 94, 94, 1)")
-        renderer.rect(p, vecOne);      
+        mat = materials[this.g[p.x + p.y * this.size.x]];
+        
+        renderer.image(nde.tex[mat.tex], p, vecOne);
       }
     }
+
+    renderer._(() => {
+      let camSize = new Vec(cam.w, cam.w * cam.ar);
+      let noiseImg = this.noiseImg;
+      let pos = cam.pos._divV(camSize).floor().mulV(camSize);
+
+      renderer.translate(pos);
+      renderer.image(noiseImg, camSize._div(-2), camSize);
+      renderer.translate(new Vec(camSize.x, 0));
+      renderer.image(noiseImg, camSize._div(-2), camSize);
+      renderer.translate(new Vec(0, camSize.y));
+      renderer.image(noiseImg, camSize._div(-2), camSize);
+      renderer.translate(new Vec(-camSize.x, 0));
+      renderer.image(noiseImg, camSize._div(-2), camSize);
+    });
   }
 
   random() {
@@ -146,6 +173,19 @@ class Grid extends Component {
     return texture;
   }
 
+  getMat(v) {
+    if (this.inBounds(v)) return this.g[this.getIndex(v)];
+  }
+  setMat(v, matIndex) {
+    if (this.inBounds(v)) this.g[this.getIndex(v)] = matIndex;
+  }
+  getIndex(v) {
+    if (this.inBounds(v)) return Math.floor(v.x) + Math.floor(v.y) * this.size.x;
+  }
+  inBounds(v) {
+    return (v.x >= 0 && v.x < this.size.x && v.y >= 0 && v.y < this.size.y);
+  }
+
 
   from(data) {
     super.from(data);
@@ -160,5 +200,17 @@ class Grid extends Component {
     delete this.ob.grid;
 
     super.strip();
+  }
+}
+
+
+function processRooms() {
+  for (let assetName in nde.assets) {
+    let split = assetName.split("/");
+    if (!split.splice(0, 1)[0] == "rooms") continue;
+
+    let room = nde.assets[assetName];
+    room.name = split.join("/");
+    allRooms.push(room);
   }
 }
