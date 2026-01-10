@@ -73,17 +73,17 @@ nde.on("afterSetup", () => {
   if (client) {
     scenes.game.setupListeners();
 
-    if (settings.autoConnect)  {
-      client.on("world", () => {
+    client.on("world", () => {
+      if (settings.autoConnect)  {
         nde.setScene(scenes.game);
+      };
 
-        client.on("ping", () => {
-          ping = Math.round(performance.now() - lastPingTime);
-        })
-        setInterval(sendPing, 5000);
-        sendPing();
-      }) 
-    };
+      client.on("ping", () => {
+        ping = Math.round(performance.now() - lastPingTime);
+      })
+      setInterval(sendPing, 5000);
+      setTimeout(sendPing, 200);
+    });
   }
 
 });

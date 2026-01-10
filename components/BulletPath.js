@@ -16,11 +16,11 @@ class BulletPath extends Component {
     this.transform.pos.from(this.startPos);
     this.transform.dir = this.end._subV(this.startPos).angle();
     
-    let light = new Light({maxR: 5, brightness: 1, tex: "light/cone45"});
+    let light = new Light({maxR: 10, brightness: 2, tex: "light/cone45"});
     light.clientOnly = true;
     this.addComponent(light);
 
-    light = new Light({maxR: 1, brightness: 1, tex: "light/1"});
+    light = new Light({maxR: 2, brightness: 1, tex: "light/1"});
     light.clientOnly = true;
     this.addComponent(light);
   }

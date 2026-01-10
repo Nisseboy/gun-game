@@ -107,7 +107,13 @@ class ClientBase extends NetworkingBase {
     });
   }
 
-  send(channel, data) {}
+  send(channel, ...data) {}
+
+  sendOthers(channel, ...data) {this.sendOthers(channel, ...data)}
+  sendAll(channel, ...data) {
+    this.fire(channel, ...data);
+    this.send(channel, ...data);
+  }
 
   sendLater(channel, ...data) {
     for (let i = 0; i < this.pending.length; i++) {

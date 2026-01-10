@@ -83,7 +83,7 @@ class Inventory extends Component {
 
       slot.amount++;
 
-      item.item.pickup();
+      item.item.sendPickup();
       removeEntity(item);
     } else {
       if (slot.tag) {
@@ -96,7 +96,7 @@ class Inventory extends Component {
 
       slot.item = itemId;
       slot.amount = 1;
-      item.item.pickup();
+      item.item.sendPickup();
     }
 
     if (slotIndex == this.heldIndex) this.heldItem = idLookup[slot.item];
@@ -124,7 +124,7 @@ class Inventory extends Component {
       } else {
         setParent(item, itemHolder);
         item.transform.pos.from(this.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(2));
-        item.item.drop();
+        item.item.sendDrop();
         
         delete slot.item;
         slot.amount = 0;

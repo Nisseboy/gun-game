@@ -1,3 +1,7 @@
+
+
+
+
 let groundItems = [];
 
 class Item extends Component {
@@ -7,35 +11,32 @@ class Item extends Component {
     this.stackSize = props.stackSize || 1;
     this.tags = "";
 
-    this._held = false;
+    this.held = false;
   }
 
   start() {
     this.ob.item = this;
-    this.held = this.held;
 
     this.tracker = new Tracker({active: false});
     this.addComponent(this.tracker);
 
-  }
-
-  set held(value) {
-    this._held = value;
-
-    if (value) {
+    this.on("pickup", () => {
+      this.held = true;
       this.ob.active = false;
 
       let index = groundItems.indexOf(this);
       if (index == -1) return;
       groundItems.splice(index, 1);
-    } else {            
+    });
+    this.on("drop", () => {
+      this.held = false;
       this.ob.active = true;
 
       groundItems.push(this);
-    }
-  }
-  get held() {
-    return this._held;
+    });
+
+    if (this.held) this.fire("pickup");
+    else this.fire("drop");
   }
 
   update(dt) {
@@ -43,14 +44,12 @@ class Item extends Component {
   }
 
 
-  pickup() {
-    this.held = true;
-    client.send("set", this.ob.id, "item.held", true);
+  sendPickup() {
+    sendFire(this.ob, "pickup");
   }
-  drop() {
-    this.held = false;    
+  sendDrop() {
     this.tracker.snap();
-    client.send("set", this.ob.id, "item.held", false);
+    sendFire(this.ob, "drop");
   }
 
 
@@ -67,7 +66,7 @@ class Item extends Component {
 
     this.stackSize = data.stackSize;
     this.tags = data.tags;
-    this._held = data._held;
+    this.held = data.held;
 
     return this;
   }

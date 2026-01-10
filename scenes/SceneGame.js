@@ -206,6 +206,16 @@ class SceneGame extends Scene {
       });
       e[steps[steps.length - 1]](...args);
     });
+    //Fire event on entity
+    client.on("fire", ( entityId, eventName, ...args) => { 
+      let e = idLookup[entityId];
+
+      args = args.map(e => {
+        if (value.type) return cloneData(e);
+        else return e;
+      });
+      e.fire(eventName, ...args);
+    });
   }
   loadWorld(w) {
     world = w;
@@ -350,6 +360,14 @@ class SceneGame extends Scene {
 function sendSet(entity, path, value) {
   client.fire("set", entity.id, path, value);
   client.send("set", entity.id, path, value);
+}
+function sendCall(entity, path, ...args) {
+  client.fire("call", entity.id, path, ...args);
+  client.send("call", entity.id, path, ...args);
+}
+function sendFire(entity, eventName, ...args) {
+  client.fire("fire", entity.id, eventName, ...args);
+  client.send("fire", entity.id, eventName, ...args);
 }
 function createEntity(entity, parent) {
   client.fire("createEntity", entity.serialize(), parent.id);
