@@ -4,15 +4,13 @@ nde.uiDebug = false;
 //nde.targetFPS = 60;
 
 let renderer = nde.renderer;
-for (let p of assetPaths) {
-  nde.loadAsset(p);
+for (let asset of assetPaths) {
+  nde.loadAsset(asset);
 }
-preloadAnimations();
 
 
 let settingsName = "gunGameSettings";
 let settings = JSON.parse(localStorage.getItem(settingsName)) || {};
-setBackgroundCol(); //Set the background color if it was overridden by settings
 
 
 let scenes = {};
@@ -50,13 +48,14 @@ nde.on("keydown", e => {
 });
 
 nde.on("afterSetup", () => {
-  Object.assign(scenes, {
-    game: new SceneGame(), 
-    editor: new SceneEditor(), 
+  initStyles();
+  
+  for (let path of scenePaths) {
+    let name = path.split("Scene")[1];
+    name = name[0].toLowerCase() + name.slice(1);
+    scenes[name] = new (eval(path))();
+  }
 
-    mainMenu: new SceneMainMenu(),
-    settings: new SceneSettings(),
-  })
   processGunSprites();
   processRooms();
 

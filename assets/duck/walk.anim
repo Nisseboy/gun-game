@@ -1,0 +1,11 @@
+(()=>{
+
+return new Animation([
+  new event("step", -0.2),
+  new frame("duck/1"),
+  new event("step", 0.2),
+  new frame("duck/1"),
+  new loop(),
+], 1/6);
+
+})();

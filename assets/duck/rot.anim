@@ -1,0 +1,15 @@
+(()=>{
+
+return new Animation([
+  new frame("duck/rot/1"),
+  new frame("duck/rot/2"),
+  new frame("duck/rot/3"),
+  new frame("duck/rot/4"),
+  new frame("duck/rot/5"),
+  new frame("duck/rot/6"),
+  new frame("duck/rot/7"),
+  new frame("duck/rot/8"),
+  new loop(),
+], 1/10)
+
+})();

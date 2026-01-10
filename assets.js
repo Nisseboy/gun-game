@@ -1,72 +1,34 @@
 let assetPaths = [
-//Rooms
-  {"path": "rooms/testRoom.ob"},
-  {"path": "rooms/testRoom2.ob"},
-
-//Materials
-  {"path": "floor/1.png"},
-  
-  {"path": "wall/1.png"},
-
-//Duck
-  {"path": "duck/1.png"},
-  {"path": "duck/dead.png"},
-  {"path": "duck/rot/1,2,3,4,5,6,7,8.png"},
-
-  {"path": "duck/step/1.mp3"},
-  {"path": "duck/step/2.mp3"},
-  {"path": "duck/step/3.mp3"},
-  {"path": "duck/step/4.mp3"},
-
-//Weapons
-  {"path": "gun/pistol.png"},
-  {"path": "gun/shotgun.png"},
-  {"path": "gun/sniper.png"},
-  {"path": "gun/smg.png"},
-  {"path": "gun/machinegun.png"},
-
-  {"path": "gun/pistolShot.mp3"},
-  {"path": "gun/reloadMagazineStart.mp3"},
-  {"path": "gun/reloadMagazineEnd.mp3"},
-  {"path": "gun/shotgunShot.mp3"},
-  {"path": "gun/shotgunReload.mp3"},
-  {"path": "gun/sniperShot.mp3"},
-
-//Inventory
-  {"path": "crosshair.png"},
-
-  {"path": "inventory/slot.png"},
-  {"path": "inventory/heldSlot.png"},
-  {"path": "inventory/primary.png"}, //opacity: 120*182
-  {"path": "inventory/secondary.png"},
+  {"path":"duck/1.png"},
+  {"path":"duck/rot/1,2,3,4,5,6,7,8.png"},
+  {"path":"duck/step/1.mp3"},
+  {"path":"duck/step/2.mp3"},
+  {"path":"duck/step/3.mp3"},
+  {"path":"duck/step/4.mp3"},
+  {"path":"crosshair.png"},
+  {"path":"duck/dead.png"},
+  {"path":"floor/1.png"},
+  {"path":"floor/drain.png"},
+  {"path":"gun/machinegun.png"},
+  {"path":"gun/pistol,shotgun,sniper,smg,machinegun.png"},
+  {"path":"gun/pistol.png"},
+  {"path":"gun/pistolShot.mp3"},
+  {"path":"gun/reloadMagazineEnd.mp3"},
+  {"path":"gun/reloadMagazineStart.mp3"},
+  {"path":"gun/shotgun.png"},
+  {"path":"gun/shotgunReload.mp3"},
+  {"path":"gun/shotgunShot.mp3"},
+  {"path":"gun/smg.png"},
+  {"path":"gun/sniper.png"},
+  {"path":"gun/sniperShot.mp3"},
+  {"path":"inventory/heldSlot.png"},
+  {"path":"inventory/primary.png"},
+  {"path":"inventory/secondary.png"},
+  {"path":"inventory/slot.png"},
+  {"path":"rooms/testRoom.ob"},
+  {"path":"rooms/testRoom2.ob"},
+  {"path":"wall/1.png"},
+  {"path":"duck/rot.anim"},
+  {"path":"duck/walk.anim"}
 ];
-
-function preloadAnimations() {
-  let frame = AnimationFrame;
-  let loop = AnimationFrameLoop;
-  let event = AnimationFrameEvent;
-
-  { //duck/walk
-    nde.tex["duck/walk"] = new Animation([
-      new event("step", -0.2),
-      new frame(nde.tex["duck/1"]),
-      new event("step", 0.2),
-      new frame(nde.tex["duck/1"]),
-      new loop(),
-    ], 1/6);
-  }
-  
-  { //duck/rot
-    nde.tex["duck/rot"] = new Animation([
-      new frame(nde.tex["duck/rot/1"]),
-      new frame(nde.tex["duck/rot/2"]),
-      new frame(nde.tex["duck/rot/3"]),
-      new frame(nde.tex["duck/rot/4"]),
-      new frame(nde.tex["duck/rot/5"]),
-      new frame(nde.tex["duck/rot/6"]),
-      new frame(nde.tex["duck/rot/7"]),
-      new frame(nde.tex["duck/rot/8"]),
-      new loop(),
-    ], 1/10);
-  }
-}
+let scenePaths = ["SceneEditor","SceneGame","SceneMainMenu","SceneSettings"];

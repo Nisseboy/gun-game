@@ -207,8 +207,8 @@ class Grid extends Component {
 function processRooms() {
   for (let assetName in nde.assets) {
     let split = assetName.split("/");
-    if (!split.splice(0, 1)[0] == "rooms") continue;
-
+    if (split.splice(0, 1)[0] != "rooms") continue;
+    
     let room = nde.assets[assetName];
     room.name = split.join("/");
     allRooms.push(room);

@@ -476,17 +476,15 @@ let vecOne = new Vec(1, 1);
 
 /* src/Camera.js */
 class Camera extends Serializable {
-  constructor(pos) {
+  constructor(pos, props = {}) {
     super();
 
     this.pos = pos || new Vec(0, 0);
 
     this.w = 16;
-    this.ar = nde.ar;
+    this.ar = props.ar || nde.ar;
 
     this.dir = 0;
-
-    this.renderW;
   }
 
   from(data) {
@@ -494,7 +492,6 @@ class Camera extends Serializable {
     if (data.pos) this.pos = new Vec().from(data.pos);
     if (data.w) this.w = data.w;
     if (data.dir) this.dir = data.dir;
-    if (data.renderW) this.renderW = data.renderW;
     
     return this;
   }
@@ -508,7 +505,7 @@ class Camera extends Serializable {
   transformVec(v) {
     v = v._subV(this.pos);
     v.addV(new Vec(this.w / 2, this.w / 2 * this.ar));
-    v.mul(this.renderW / this.w);
+    v.mul(nde.w / this.w);
 
     return v;
   }
@@ -519,7 +516,7 @@ class Camera extends Serializable {
    * @return {Vec} World space
    */
   untransformVec(v) {
-    v = v._div(this.renderW / this.w);
+    v = v._div(nde.w / this.w);
     v.subV(new Vec(this.w / 2, this.w / 2 * this.ar));
     v.addV(this.pos);
 
@@ -533,7 +530,7 @@ class Camera extends Serializable {
    * @return {number} Screen space
    */
   scale(s) {
-    return s * (this.renderW / this.w);
+    return s * (nde.w / this.w);
   }
   /**
    * Scales number from screen space to world space
@@ -542,7 +539,7 @@ class Camera extends Serializable {
    * @return {number} World space
    */
   unscale(s) {
-    return s / (this.renderW / this.w);
+    return s / (nde.w / this.w);
   }
 
   /**
@@ -552,7 +549,7 @@ class Camera extends Serializable {
    * @return {Vec} Screen space
    */
   scaleVec(v) {
-    return v._mul(this.renderW / this.w);
+    return v._mul(nde.w / this.w);
   }
   /**
    * Scales vector from screen space to world space
@@ -561,7 +558,7 @@ class Camera extends Serializable {
    * @return {Vec} World space
    */
   unscaleVec(v) {
-    return v._div(this.renderW / this.w);
+    return v._div(nde.w / this.w);
   }
 
   /**
@@ -814,6 +811,109 @@ class EventHandler {
     }
       
     return true;
+  }
+}
+
+
+
+
+
+/* src/inputManagers/InputManager.js */
+class InputManager {
+  constructor() {
+    this.log = [];
+  }
+
+  init() {
+    
+  }
+
+  fire(eventName, ...args) {
+    if (nde.debug) {
+      let log = [eventName];
+      for (let i = 0; i < args.length; i++) {
+        let arg = args[i];
+        
+        if (arg instanceof Event) {      
+          if (arg instanceof MouseEvent) {          
+            log.push({
+              altKey: arg.altKey,
+              ctrlKey: arg.ctrlKey,
+              metaKey: arg.metaKey,
+              shiftKey: arg.shiftKey,
+
+              button: arg.button,
+              buttons: arg.buttons,
+              clientX: arg.clientX,
+              clientY: arg.clientY,
+
+              deltaY: arg.deltaY,
+            });
+          } else if (arg instanceof KeyboardEvent) {
+            log.push({
+              altKey: arg.altKey,
+              ctrlKey: arg.ctrlKey,
+              metaKey: arg.metaKey,
+              shiftKey: arg.shiftKey,
+
+              code: arg.code,
+              key: arg.key,
+            });
+          } else if (arg instanceof UIEvent) {
+            
+          }
+        } else {
+          log.push(arg);
+        }
+      }
+      this.log.push(log);
+    }
+    nde.fire(eventName, ...args);    
+  }
+}
+
+
+
+
+
+/* src/inputManagers/InputManagerReplay.js */
+class InputManagerReplay extends InputManager {
+  constructor(log, playbackDivisions = 1) {
+    super();
+
+    this.log = log;
+    this.playbackDivisions = playbackDivisions;
+
+    this.frame = 0;
+    this.i = 0;
+  }
+
+  init() {
+    requestAnimationFrame(() => {this.animationFrame()});
+  }
+
+  fire(eventName, ...args) {
+    
+  }
+
+  animationFrame() {
+    if (this.frame != -1) requestAnimationFrame(() => {this.animationFrame()});
+
+    this.i++;
+    if (this.i % this.playbackDivisions != 0) return;   
+    
+    while (true) {
+      let frame = this.log[this.frame];
+      if (!frame) {
+        this.frame = -1;
+        return;
+      }
+
+      nde.fire(...frame);
+      this.frame++;
+
+      if (frame[0] == "input_frame") return;
+    }
   }
 }
 
@@ -1348,11 +1448,11 @@ class AnimationFrameBase {
 
 /* src/assets/animation/frames/AnimationFrame.js */
 class AnimationFrame extends AnimationFrameBase {
-  constructor(img) {
+  constructor(tex) {
     super();
     this.duration = 1;
 
-    this.img = img;
+    this.img = nde.tex[tex];
   }
 
   step(runningAnimation) {
@@ -1398,8 +1498,10 @@ class AnimationFrameLoop extends AnimationFrameBase {
 
 
 /* src/assets/animation/Animation.js */
-class Animation {
-  constructor(frames, dt) {
+class Animation extends EvalAsset {
+  constructor(frames = [], dt = 0.1) {
+    super();
+
     this.frames = frames;
     this.dt = dt;
     this.speed = 1;
@@ -1411,6 +1513,13 @@ class Animation {
 
   start(props = {}) {
     return new RunningAnimation(this, props);
+  }
+
+  eval() {
+    let ob = eval("let frame = AnimationFrame, loop = AnimationFrameLoop, event = AnimationFrameEvent;" + this.data);
+    if (!nde.tex) nde.tex = {};
+    nde.tex[this.name] = ob;
+    return ob;
   }
 }
 
@@ -2324,7 +2433,6 @@ class ScenePopup extends Scene {
 
     this.cam = new Camera(new Vec(800, 450));
     this.cam.w = 1600;
-    this.cam.renderW = nde.w;
 
     this.img = undefined;
 
@@ -2356,7 +2464,6 @@ class ScenePopup extends Scene {
 
   render() {
     let cam = this.cam;
-    cam.renderW = nde.w;
 
     cam._(renderer, ()=>{
       renderer.image(this.img, vecZero, new Vec(cam.w, cam.w * cam.ar));
@@ -2376,7 +2483,6 @@ class UISettingBase extends UIBase {
     this.interactable = true;
 
     this.value = props.value;
-    this.lastValue = this.value;
     this.focused = false;
 
     this.name = props.name;
@@ -2401,10 +2507,7 @@ class UISettingBase extends UIBase {
   fireInput() {
     this.fire("input", this.value);
   }
-  fireChange(wasSubmitted = true) {
-    if (JSON.stringify(this.lastValue) == JSON.stringify(this.value)) return;
-    this.lastValue = this.value;
-
+  fireChange(wasSubmitted = true) {    
     this.fire("change", this.value, wasSubmitted);
   }
 }
@@ -3526,7 +3629,6 @@ class UISettingText extends UISettingBase {
     this.constrainScroll();
     this.positionChildren();
   }
-
   constrainCursor(cursor) {
     let lines = this.getLines();
     if (cursor.y >= lines.length) cursor.y = lines.length - 1;
@@ -4149,6 +4251,8 @@ class Ob extends Serializable {
       this.components.unshift(this.transform);
     }
     if (props.pos) this.transform.pos.from(props.pos);
+    if (props.size) this.transform.size.from(props.size);
+    if (props.dir != undefined) this.transform.dir = props.dir;
 
     for (let c of this.components) {
       c.ob = this;
@@ -4504,6 +4608,7 @@ class NDE {
     this.assetLoaders = {
       "ob": EvalAsset,
       "component": EvalAsset,
+      "anim": Animation,
       "png": Img,
       "mp3": Aud,
     };
@@ -4539,6 +4644,10 @@ class NDE {
 
     this.setScene(new Scene());
 
+    this.inputManager = undefined;
+    this.initInputManager();
+    this.setupHandlers();
+
     let i = 0;
     let lastLength = Infinity;
     let interval = setInterval(e => {
@@ -4548,21 +4657,21 @@ class NDE {
         for (let a of unloadedEvalAssets) {
           a.eval();
         }
+        this.inputManager.init();
         
+
         this.fire("beforeSetup");
 
         this.mainElem.appendChild(this.mainImg.canvas);
-        this.resize();
-      
+        this.inputManager.fire("input_resize");
+
         this.renderer.set("font", "16px monospace");
         this.renderer.set("textAlign", ["left", "top"]);
         this.renderer.set("imageSmoothing", false);
         
         this.fire("afterSetup");
 
-        this.setupHandlers();
-
-        requestAnimationFrame(time => {this.draw(time)});
+        requestAnimationFrame(time => {this.animationFrame(time)});
       }
       if (i >= 100) {
         if (this.unloadedAssets.length < lastLength) {
@@ -4579,19 +4688,57 @@ class NDE {
 
   }
 
+  initInputManager() {
+    let log = localStorage.getItem("replay-log");
+    if (log) {
+      let parsed = JSON.parse(log);
+      this.inputManager = new InputManagerReplay(parsed.log, parsed.playbackDivisions);
+      localStorage.removeItem("replay-log");
+    } else {
+      this.inputManager = new InputManager();
+    }
+  }
+  replay(playbackDivisions = 1) {
+    localStorage.setItem("replay-log", JSON.stringify({log: this.inputManager.log, playbackDivisions: playbackDivisions}));
+    window.location.reload();
+  }
+
   setupHandlers() {
-    window.addEventListener("resize", e => {this.resize(e)});
-
+    window.addEventListener("resize", e => {
+      this.inputManager.fire("input_resize");
+    });
     document.addEventListener("keydown", e => {
-      if (!audioContext.state == "running") {
-        audioContext.resume();
-        
-        setTimeout(() => {
-          this.fire("audioContextStarted");
-        }, 0);
-      }
+      this.tryStartAudio();
 
-      
+      this.inputManager.fire("input_keydown", e);
+    });
+    document.addEventListener("keyup", e => {
+      this.inputManager.fire("input_keyup", e);
+    });
+    document.addEventListener("mousemove", e => {
+      this.inputManager.fire("input_mousemove", e, (e.clientX - this.mainElemBoundingBox.x) / this.mainImg.size.x * this.w, (e.clientY - this.mainElemBoundingBox.y) / this.mainImg.size.x * this.w);
+    });
+    document.addEventListener("mousedown", e => {
+      this.tryStartAudio();
+
+      this.inputManager.fire("input_mousedown", e);
+    });
+    document.addEventListener("mouseup", e => {
+      this.inputManager.fire("input_mouseup", e);
+    });
+    document.addEventListener("wheel", e => {
+      this.inputManager.fire("input_wheel", e);
+    });
+
+    
+    window.oncontextmenu = (e) => {
+      e.preventDefault(); 
+      e.stopPropagation(); 
+      return false;
+    };
+
+
+    this.on("input_keydown", e => {
       if (this.hoveredUIElement) {
         if (this.hoveredUIElement.fire("keydown", e) == false) return;
         if (this.hoveredUIElement.fire("inputdown", e.key.toLowerCase(), e) == false) return;
@@ -4600,16 +4747,14 @@ class NDE {
       if (!this.pressed[e.key.toLowerCase()]) {
         if (this.debug) console.log(e.key);
 
-        if (!this.fire("keydown", e)) return;
-        if (!this.fire("inputdown", e.key.toLowerCase(), e)) return;
-
         this.pressed[e.key.toLowerCase()] = true;
         this.pressedFrame.push(e.key.toLowerCase());
+        
+        if (!this.fire("keydown", e)) return;
+        if (!this.fire("inputdown", e.key.toLowerCase(), e)) return;
       }
-    
-      
     });
-    document.addEventListener("keyup", e => {
+    this.on("input_keyup", e => {
       delete this.pressed[e.key.toLowerCase()];
       this.releasedFrame.push(e.key.toLowerCase());
 
@@ -4621,11 +4766,9 @@ class NDE {
       this.fire("keyup", e);
       this.fire("inputup", e.key.toLowerCase(), e);
     });
-    
-    document.addEventListener("mousemove", e => {
-      this.mouse.x = (e.clientX - this.mainElemBoundingBox.x) / this.mainImg.size.x * this.w;
-      this.mouse.y = (e.clientY - this.mainElemBoundingBox.y) / this.mainImg.size.x * this.w;
-
+    this.on("input_mousemove", (e, x, y) => {      
+      this.mouse.x = x;
+      this.mouse.y = y;
 
       if (this.hoveredUIElement) {
         this.hoveredUIElement.fire("mousemove", e);
@@ -4633,16 +4776,7 @@ class NDE {
       
       this.fire("mousemove", e);
     });
-    document.addEventListener("mousedown", e => {
-      if (audioContext.state != "running") {
-        audioContext.resume();
-        
-        setTimeout(() => {
-          this.fire("audioContextStarted");
-        }, 0);
-      }
-
-
+    this.on("input_mousedown", e => {
       if (this.hoveredUIElement) {
         if (this.hoveredUIElement.fire("mousedown", e) == false) return;
         this.hoveredUIElement.fire("inputdown", "mouse" + e.button, e);
@@ -4653,14 +4787,15 @@ class NDE {
       if (!this.pressed["mouse" + e.button]) {
         if (this.debug) console.log("mouse" + e.button);
 
-        if (!this.fire("mousedown", e)) return;
-        if (!this.fire("inputdown", "mouse" + e.button, e)) return;
-
         this.pressed["mouse" + e.button] = true;
         this.pressedFrame.push("mouse" + e.button);
+
+        if (!this.fire("mousedown", e)) return;
+        if (!this.fire("inputdown", "mouse" + e.button, e)) return;
       }
+
     });
-    document.addEventListener("mouseup", e => {
+    this.on("input_mouseup", e => {
       delete this.pressed["mouse" + e.button];
       this.releasedFrame.push("mouse" + e.button);
 
@@ -4672,7 +4807,7 @@ class NDE {
       this.fire("mouseup", e);
       this.fire("inputup", "mouse" + e.button, e);
     });
-    document.addEventListener("wheel", e => {
+    this.on("input_wheel", e => {
       if (this.hoveredUIElement) {
         if (this.hoveredUIElement.fire("wheel", e) == false) return;
         if (this.hoveredUIRoot?.wheel(e) == false) return;
@@ -4682,12 +4817,22 @@ class NDE {
       this.fire("wheel", e);      
     });
 
+    this.on("input_resize", e => {
+      this.resize(e);  
+    });
+    this.on("input_frame", time => {
+      if (time == undefined) time = performance.now();
+      
+      let dt = Math.min(time - this.lastFrameTime, 200);
+      
+      if (this.targetFPS != undefined) {
+        if ((time + 0.1) - this.lastFrameTime < 1000 / this.targetFPS) return; 
+      }
     
-    window.oncontextmenu = (e) => {
-      e.preventDefault(); 
-      e.stopPropagation(); 
-      return false;
-    };
+      this.lastFrameTime = time;
+    
+      this.updateGame(dt);
+    });
   }
 
   setScene(newScene) {
@@ -4721,7 +4866,7 @@ class NDE {
   off(...args) {return this.e.off(...args)}
   fire(eventName, ...args) {
     if (this.e.fire(eventName, ...args) == false) return false;
-    if (this.scene[eventName](...args) == false) return false;
+    if (this.scene[eventName] && this.scene[eventName](...args) == false) return false;
     return true;
   }
 
@@ -4745,7 +4890,6 @@ class NDE {
     this.renderer.resize(new Vec(this.w, this.w * this.ar));
     
     this.scene.resize(e);
-    //this.fire("resize", e);
   }
 
   /**
@@ -4812,20 +4956,9 @@ class NDE {
 
 
 
-  draw(time) {
-    requestAnimationFrame(time => {this.draw(time)});
-  
-    if (time == undefined) time = performance.now();
-    
-    let dt = Math.min(time - this.lastFrameTime, 200);
-    
-    if (this.targetFPS != undefined) {
-      if ((time + 0.1) - this.lastFrameTime < 1000 / this.targetFPS) return; 
-    }
-  
-    this.lastFrameTime = time;
-  
-    this.updateGame(dt);
+  animationFrame(time) {
+    requestAnimationFrame(time => {this.animationFrame(time)});
+    this.inputManager.fire("input_frame", time);
   }
   updateGame(dt) {
     let t1 = performance.now();
@@ -4947,7 +5080,6 @@ class NDE {
     
     return asset;
   }
-
   getTex(texOrTexture) {
     if (typeof texOrTexture == "string") return texOrTexture;
    
@@ -4958,6 +5090,16 @@ class NDE {
     nde.tex[index] = texOrTexture;
     
     return index;
+  }
+  tryStartAudio() {
+    if (audioContext.state != "running") {
+      audioContext.resume();
+    
+      
+      setTimeout(() => {
+        this.fire("audioContextStarted");        
+      }, 0);
+    }
   }
 }
 
