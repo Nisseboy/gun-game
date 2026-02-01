@@ -12,6 +12,8 @@ class Tracker extends Component {
   start() {
     this.oldPos = this.transform.pos.copy();
     this.oldDir = this.transform.dir;
+
+    this.ob.tracker = this;
   }
   
   update() {
@@ -38,5 +40,11 @@ class Tracker extends Component {
     if (this.trackPos) requests.push(["set", this.ob.id, "transform.pos", this.oldPos]);       
     if (this.trackDir) requests.push(["set", this.ob.id, "transform.dir", this.oldDir]);  
     client.send("mult", requests);
+  }
+
+  strip() {
+    delete this.ob.tracker;
+
+    super.strip();
   }
 }

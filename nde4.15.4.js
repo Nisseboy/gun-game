@@ -1059,7 +1059,7 @@ class Img extends Renderable {
 
       if (!nde.tex) nde.tex = {};
       nde.tex[name] = this;
-
+      
       if (segments) {
         for (let i of segmentNames) {
           let img = new Img();
@@ -5053,7 +5053,7 @@ class NDE {
   }
 
   loadAsset(assetDescriptor) {
-    if (typeof assetDescriptor == "string") assetDescriptor = {path: assetDescriptor};
+    if (typeof assetDescriptor == "string") assetDescriptor = {path: assetDescriptor};    
 
     let path = assetDescriptor.path;
     let split1 = path.split(".");
@@ -5118,3 +5118,6 @@ var getDeltaAngle = function () {
 
 
 
+
+let deg2rad = Math.PI / 180;
+let rad2deg = 180 / Math.PI;

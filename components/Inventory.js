@@ -64,14 +64,13 @@ class Inventory extends Component {
   }
 
 
-  pickup(itemId) {
+  pickup(item) {
     for (let i = 0; i < this.slots.length; i++) {
-      let res = this.putInSlot(itemId, i)
+      let res = this.putInSlot(item, i)
       if (res) return res;
     }
   }
-  putInSlot(itemId, slotIndex) {
-    let item = idLookup[itemId];
+  putInSlot(item, slotIndex) {
     if (!item) return;
 
     let slot = this.slots[slotIndex];
@@ -79,22 +78,16 @@ class Inventory extends Component {
       let i2 = idLookup[slot.item];
 
       if (i2.name != item.name) return;
-      if (slot.amount >= item.item.stackSize) return;
+      if (slot.amount >= item.item.info.stackSize) return;
 
       slot.amount++;
 
       item.item.sendPickup();
       removeEntity(item);
     } else {
-      if (slot.tag) {
-        let splitSlot = slot.tag.split(",");
-        let splitItem = item.item.tags.split(",");
-        for (let i = 0; i < splitSlot.length; i++) {
-          if (!splitItem.includes(splitSlot[i])) return;
-        }
-      }
+      if (!this.checkAllowedTags(slot, item.item)) return;
 
-      slot.item = itemId;
+      slot.item = item.id;
       slot.amount = 1;
       item.item.sendPickup();
     }
@@ -103,27 +96,39 @@ class Inventory extends Component {
     return idLookup[slot.item];
   }
 
-  drop(slotIndex, amount = 1) {
+  drop(slotIndex, amount = 1, randomize = true) {
     let slot = this.slots[slotIndex];
 
     for (let i = 0; i < amount; i++) {
       if (slot.amount <= 0) return;
-      
+
       let item = idLookup[slot.item]
       if (slot.amount > 1) {
         let item2 = item.copy();
         item2.randomizeId();
         
         item2.getComponent(Item)._held = false;
-        item2.getComponent(Transform).pos.from(this.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(2));
-        item2.getComponent(Transform).dir = Math.random() * Math.PI * 2;
+        let t = item2.getComponent(Transform);
+        if (randomize) {
+          t.pos.from(this.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(2));
+          t.dir = Math.random() * Math.PI * 2;
+        } else {
+          t.pos.from(item.transform.pos);
+          t.dir = item.transform.dir;
+        }
+        droppedItem = item2;
         
         createEntity(item2, itemHolder);
         
         slot.amount--;
       } else {
         setParent(item, itemHolder);
-        item.transform.pos.from(this.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(2));
+
+        if (randomize) {
+          item.transform.pos.from(this.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(2));
+          item.transform.dir = Math.random() * Math.PI * 2;
+        }
+
         item.item.sendDrop();
         
         delete slot.item;
@@ -134,6 +139,24 @@ class Inventory extends Component {
         }
       }
     }
+  }
+  checkAllowedTags(slot, item) {
+    if (!slot.tag) return true;
+
+    let splitSlot = slot.tag.split(",");
+    
+    let splitItem = item.info.tags.split(",");
+    for (let i = 0; i < splitSlot.length; i++) {
+      let tag = splitSlot[i];
+      let splitTag = tag.split("!");
+      if (splitTag.length == 1) {
+        if (!splitItem.includes(tag)) return false;
+      } else {
+        if (splitItem.includes(splitTag[1])) return false;
+      }
+    }
+
+    return true;
   }
 
 
@@ -195,7 +218,7 @@ class Inventory extends Component {
         if (gun) {
           renderer.set("textAlign", ["center", "bottom"]);
           renderer.set("font", "0.2px monospace");
-          renderer.text(`${gun.ammo}/${gun.maxAmmo}`, new Vec(0.5, 0.9));
+          renderer.text(`${gun.ammo}/${gun.ob.item.info.gun.maxAmmo}`, new Vec(0.5, 0.9));
         }
         return;
       }

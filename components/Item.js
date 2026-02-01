@@ -1,17 +1,20 @@
-
-
-
-
-let groundItems = [];
-
 class Item extends Component {
   constructor(props = {}) {
     super();
 
-    this.stackSize = props.stackSize || 1;
-    this.tags = "";
-
     this.held = false;
+
+    this._itemType = undefined;
+    this.info = undefined;
+    this.itemType = props.itemType || "Item";
+  }
+
+  set itemType(value) {
+    this._itemType = value;
+    this.info = itemTypes[value];    
+  }
+  get itemType() {
+    return this._itemType;
   }
 
   start() {
@@ -20,28 +23,30 @@ class Item extends Component {
     this.tracker = new Tracker({active: false});
     this.addComponent(this.tracker);
 
+    this.on("interact", (ob) => {
+      let inventory = ob.getComponent(Inventory);
+      
+      inventory.pickup(this.ob);
+    });
+
     this.on("pickup", () => {
       this.held = true;
       this.ob.active = false;
-
-      let index = groundItems.indexOf(this);
-      if (index == -1) return;
-      groundItems.splice(index, 1);
+      this.ob.interactable.active = false;
     });
     this.on("drop", () => {
       this.held = false;
       this.ob.active = true;
-
-      groundItems.push(this);
+      this.ob.interactable.active = true;
     });
 
-    if (this.held) this.fire("pickup");
-    else this.fire("drop");
-  }
+    this.ob.name = this.itemType;
+    this.ob.interactable.text = this.itemType;
 
-  update(dt) {
-
+    this.getComponent(Sprite).tex = this.info.tex;
+    this.transform.size.from(nde.tex[this.info.tex].size).mul(1/20);
   }
+  
 
 
   sendPickup() {
@@ -52,21 +57,13 @@ class Item extends Component {
     sendFire(this.ob, "drop");
   }
 
-
-
-  remove() {
-    let index = groundItems.indexOf(this);
-    if (index == -1) return;
-
-    groundItems.splice(index, 1);
-  }
-
   from(data) {
     super.from(data);
 
     this.stackSize = data.stackSize;
     this.tags = data.tags;
     this.held = data.held;
+    this.itemType = data._itemType;
 
     return this;
   }

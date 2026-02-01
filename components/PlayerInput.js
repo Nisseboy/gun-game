@@ -22,8 +22,8 @@ class PlayerInput extends Component {
 
     this.inventory.w = 5;
     this.inventory.renderStart = 2;
-    this.inventory.slots[0].tag = "weapon,primary";
-    this.inventory.slots[1].tag = "weapon,secondary";
+    this.inventory.slots[0].tag = "weapon";
+    this.inventory.slots[1].tag = "weapon";
     this.inventory.allowedHeldSlots = [0, 1];
     this.inventory.heldIndex = 0; 
 
@@ -53,22 +53,22 @@ class PlayerInput extends Component {
       nde.getKeyPressed("Move Down") - nde.getKeyPressed("Move Up"),
     ).normalize().mul(this.speed * speedMult * dt));
 
-    this.closestItem = undefined;
+    this.closestInteractable = undefined;
     let closestSqd = 1000;
-    for (let i = 0; i < groundItems.length; i++) {
-      let item = groundItems[i];
+    for (let i = 0; i < interactable.length; i++) {
+      let item = interactable[i];
       let sqd = this.transform.pos._subV(item.transform.pos).sqMag();
       if (sqd < pickupRange) {
         let sqd2 = this.mousePos._subV(item.transform.pos).sqMag();
         if (sqd2 < closestSqd) {
-          this.closestItem = item;
+          this.closestInteractable = item;
           closestSqd = sqd2;
         }
       }
     }
 
-    if (nde.getKeyDown("Interact") && this.closestItem) {
-      this.inventory.pickup(this.closestItem.ob.id);
+    if (nde.getKeyDown("Interact") && this.closestInteractable) {
+      this.closestInteractable.interact(this.ob);      
     }
     if (nde.getKeyDown("Inventory")) {
       this.inventory.open = !this.inventory.open;
@@ -90,14 +90,14 @@ class PlayerInput extends Component {
 
     if (this.inventory.heldSlot) {
       if (nde.getKeyDown("Drop Item")) {
-        this.inventory.drop(this.inventory.heldIndex, 1);
+        this.inventory.drop(this.inventory.heldIndex, 1000, false);
       }
     }
 
     
-    if (this.weaponUser.weapon != this.inventory.heldItem) this.weaponUser.weapon = this.inventory.heldItem;
+    if (this.weaponUser.item != this.inventory.heldItem) this.weaponUser.item = this.inventory.heldItem;
     
-    if (this.inventory.heldItem?.item.tags.split(",").includes("weapon")) {
+    if (this.inventory.heldItem) {
       this.weaponUser.targetPos.from(this.mousePos);
 
       this.weaponUser.trigger = nde.getKeyPressed("Shoot");
@@ -112,22 +112,22 @@ class PlayerInput extends Component {
   }
 
   render() {
-    if (this.closestItem) {
+    if (this.closestInteractable) {
       renderer._(() => {
         renderer.set("fill", "rgb(255,255,255)");
         renderer.set("font", "0.3px monospace");
         renderer.set("textAlign", ["center", "middle"]);
-        renderer.text(`${this.closestItem.ob.name} [${nde.getKeyCodes("Interact")[0]}]`, this.closestItem.transform.pos._subV(new Vec(0, this.closestItem.transform.size.y / 2)), 0.5);
+        renderer.text(`${this.closestInteractable.text} [${nde.getKeyCodes("Interact")[0]}]`, this.closestInteractable.transform.pos._subV(new Vec(0, this.closestInteractable.transform.size.y / 2)), 0.5);
       });
     }
 
-    if (this.weaponUser.weapon) {
+    if (this.weaponUser._gun) {
       renderer._(() => {
-        if (this.weaponUser.weapon.name == "Sniper") {
-          let laserDir = this.weaponUser.weapon.transform.dir;
+        if (this.weaponUser._info.gun.laser) {
+          let laserDir = this.weaponUser.item.transform.dir;
           renderer.set("stroke", "rgb(255, 0, 0)");
           renderer.set("lineWidth", 0.005);
-          renderer.line(this.weaponUser.tipPos, this.weaponUser.tipPos._addV(new Vec(Math.cos(laserDir), Math.sin(laserDir)).mul(100)));
+          renderer.line(this.weaponUser._gun.tipPos, this.weaponUser._gun.tipPos._addV(new Vec(Math.cos(laserDir), Math.sin(laserDir)).mul(100)));
         } else {
           renderer.image(nde.tex["crosshair"], vecHalf._div(-2).addV(this.mousePos), vecHalf);
         }

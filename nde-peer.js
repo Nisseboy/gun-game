@@ -6,7 +6,7 @@ let client;
 let server = undefined;
 
 
-let peer = new Peer();
+let peer = new Peer("pre-" + Math.floor(Math.random() * 100000), {debug: 1});
 
 
 function initClient() {
@@ -161,10 +161,10 @@ class Client extends ClientBase {
     })
   }
 
-  connect() {
-    this.host = peer.connect(this.serverId, {metadata: this.id});
-      
-    this.host.on("open", () => {     
+  connect() {    
+    this.host = peer.connect(this.serverId, {metadata: "" + this.id});
+    
+    this.host.on("open", () => {           
       this.host.on("data", data => {
         
         this.handleRequest(data);
@@ -223,7 +223,7 @@ class ServerBase extends NetworkingBase {
     this.id = peer.id;
     setDevServer(this.id);
 
-    peer.on("connection", conn => {
+    peer.on("connection", conn => {      
       if (Object.keys(this.connections).length + 1 >= maxPlayers) {
         conn.on("open", () => {
           conn.send(JSON.stringify(["alert", ["Server full, try reloading or another server"]]));       

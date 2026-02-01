@@ -1,3 +1,135 @@
+let itemTypes = {
+  "Item": {},
+
+  "Pistol": {
+    tex: "gun/pistol",
+    gun: {
+      ammoType: AMMOTYPE.light,
+      maxAmmo: 12,
+      damage: 20,
+      cooldown: 0.1,
+      reloadTime: 1,
+      automatic: false,
+      spread: 5 * deg2rad,
+      shootAud: "gun/pistolShot",
+      reloadAud: "gun/reloadMagazine",
+    },
+  },
+  "Shotgun": {
+    tex: "gun/shotgun",
+    gun: {
+      ammoType: AMMOTYPE.shotgun,
+      maxAmmo: 4,
+      damage: 16,
+      cooldown: 1.5,
+      reloadTime: 1,
+      automatic: false,
+      spread: 10 * deg2rad,
+      shootAud: "gun/shotgunShot",
+      reloadAud: "gun/shotgunReload",
+    },
+  },
+  "SMG": {
+    tex: "gun/smg",
+    gun: {
+      ammoType: AMMOTYPE.light,
+      maxAmmo: 20,
+      damage: 8,
+      cooldown: 0.1,
+      reloadTime: 1,
+      automatic: true,
+      spread: 10 * deg2rad,
+      shootAud: "gun/pistolShot",
+      reloadAud: "gun/reloadMagazine",
+    },
+  },
+  "Sniper": {
+    tex: "gun/sniper",
+    gun: {
+      ammoType: AMMOTYPE.heavy,
+      maxAmmo: 1,
+      damage: 80,
+      cooldown: 1,
+      reloadTime: 1.5,
+      automatic: false,
+      spread: 0 * deg2rad,
+      laser: true,
+      shootAud: "gun/sniperShot",
+      reloadAud: "gun/reloadMagazine",
+    },
+  },
+  "MachineGun": {
+    tex: "gun/machinegun",
+    gun: {
+      ammoType: AMMOTYPE.heavy,
+      maxAmmo: 20,
+      damage: 20,
+      cooldown: 0.2,
+      reloadTime: 2,
+      automatic: true,
+      spread: 15 * deg2rad,
+      shootAud: "gun/sniperShot",
+      reloadAud: "gun/reloadMagazine",
+    },
+  },
+};
+
+for (let i in itemTypes) {
+  let type = itemTypes[i];
+
+  if (type.stackSize == undefined) type.stackSize = 1;
+  if (type.tags == undefined) type.tags = "";
+  if (type.tex == undefined) type.tex = "duck/1";
+
+  let g = type.gun;
+  if (g) {
+    if (g.ammoType == undefined) g.ammoType = AMMOTYPE.light;
+    if (g.maxAmmo == undefined) g.maxAmmo = 12;
+    if (g.damage == undefined) g.damage = 20;
+    if (g.cooldown == undefined) g.cooldown = 0;
+    if (g.reloadTime == undefined) g.reloadTime = 1;
+    if (g.automatic == undefined) g.automatic = false;
+    if (g.spread == undefined) g.spread = 0;
+    if (g.laser == undefined) g.laser = false;
+    if (g.shootAud == undefined) g.shootAud = "gun/pistolShot";
+    if (g.reloadAud == undefined) g.reloadAud = "gun/reloadMagazine";
+
+    if (type.tags.length != 0) type.tags += ",";
+    type.tags += "weapon";
+  }
+}
+function processGunSprites() {
+  for (let i in itemTypes) {
+    let type = itemTypes[i];
+    if (!type.gun) continue;
+
+    let texture = nde.tex[type.tex];        
+
+    let p = texture.ctx.getImageData(0, 0, texture.size.x, texture.size.y).data;
+
+    for (let x = 0; x < texture.size.x; x++) {
+      for (let y = 0; y < texture.size.y; y++) {
+        let k = (x + y * texture.size.x) * 4;
+
+        if (p[k] == 2 && p[k+1] == 0 && p[k+2] == 0 && p[k+3] == 255) {
+          type.gun.tipOffset = new Vec(x, y).subV(texture.size._mul(0.5)).add(0.5).mul(1/20);
+        }
+      }
+    }
+  }
+}
+
+function createItem(props = {}) {
+  return new Ob({}, [
+    new Sprite(),
+    new AudioSource(),
+    new Interactable(),
+    new Item(props),
+  ]);
+}
+
+
+
 let EntityDuck = new Ob({
   name: "Duck",
 }, [
@@ -8,113 +140,16 @@ let EntityDuck = new Ob({
 ]);
 
 
-
-
-
-let GunBase = new Ob({
-  name: "Gun",
-}, [
-  new Sprite(),
-  new AudioSource(),
-  new Item(),
-  new Gun(),
-]);
-
-let Pistol = GunBase.copy();
-{
-  Pistol.name = "Pistol";
-  Pistol.getComponent(Sprite).tex = "gun/pistol";
-  let gun = Pistol.getComponent(Gun);
-
-  gun.tags = "weapon,secondary";
-  gun.ammoType = AMMOTYPE.light;
-  gun.maxAmmo = 12;
-  gun.ammo = 12;
-  gun.damage = 20;
-  gun.cooldown = 0.1;
-  gun.reloadCooldown = 1;
-  gun.automatic = false;
-  gun.spread = 5 / 180 * Math.PI;
-
-  gun.shootAud = "gun/pistolShot";
-  gun.reloadAud = "gun/reloadMagazine";
-}
-let Shotgun = GunBase.copy();
-{
-  Shotgun.name = "Shotgun";
-  Shotgun.getComponent(Sprite).tex = "gun/shotgun";
-  let gun = Shotgun.getComponent(Gun);
-
-  gun.tags = "weapon,primary";
-  gun.ammoType = AMMOTYPE.shotgun;
-  gun.maxAmmo = 4;
-  gun.ammo = 4;
-  gun.damage = 16;
-  gun.cooldown = 1.5;
-  gun.reloadCooldown = 1;
-  gun.automatic = false;
-  gun.spread = 10 / 180 * Math.PI;
-
-  gun.shootAud = "gun/shotgunShot";
-  gun.reloadAud = "gun/shotgunReload";
-}
-let SMG = GunBase.copy();
-{
-  SMG.name = "SMG";
-  SMG.getComponent(Sprite).tex = "gun/smg";
-  let gun = SMG.getComponent(Gun);
-
-  gun.tags = "weapon,primary";
-  gun.ammoType = AMMOTYPE.light;
-  gun.maxAmmo = 20;
-  gun.ammo = 20;
-  gun.damage = 8;
-  gun.cooldown = 0.1;
-  gun.reloadCooldown = 1;
-  gun.automatic = true;
-  gun.spread = 10 / 180 * Math.PI;
-
-  gun.shootAud = "gun/pistolShot";
-  gun.reloadAud = "gun/reloadMagazine";
-}
-let Sniper = GunBase.copy();
-{
-  Sniper.name = "Sniper";
-  Sniper.getComponent(Sprite).tex = "gun/sniper";
-  let gun = Sniper.getComponent(Gun);
-
-  gun.tags = "weapon,primary";
-  gun.ammoType = AMMOTYPE.heavy;
-  gun.maxAmmo = 1;
-  gun.ammo = 1;
-  gun.damage = 80;
-  gun.cooldown = 1;
-  gun.reloadCooldown = 1.5;
-  gun.automatic = false;
-  gun.spread = 0 / 180 * Math.PI;
-
-  gun.shootAud = "gun/sniperShot";
-  gun.reloadAud = "gun/reloadMagazine";
-}
-let MachineGun = GunBase.copy();
-{
-  MachineGun.name = "Machine Gun";
-  MachineGun.getComponent(Sprite).tex = "gun/machinegun";
-  let gun = MachineGun.getComponent(Gun);
-
-  gun.tags = "weapon,primary";
-  gun.ammoType = AMMOTYPE.heavy;
-  gun.maxAmmo = 20;
-  gun.ammo = 20;
-  gun.damage = 20;
-  gun.cooldown = 0.2;
-  gun.reloadCooldown = 2;
-  gun.automatic = true;
-  gun.spread = 0 / 180 * Math.PI;
-
-  gun.shootAud = "gun/sniperShot";
-  gun.reloadAud = "gun/reloadMagazine";
-}
+let Pistol = createItem({itemType: "Pistol"});
+Pistol.addComponent(new Gun({ammo: itemTypes.Pistol.gun.maxAmmo}));
+let Shotgun = createItem({itemType: "Shotgun"});
+Shotgun.addComponent(new Gun({ammo: itemTypes.Shotgun.gun.maxAmmo}));
+let SMG = createItem({itemType: "SMG"});
+SMG.addComponent(new Gun({ammo: itemTypes.SMG.gun.maxAmmo}));
+let Sniper = createItem({itemType: "Sniper"});
+Sniper.addComponent(new Gun({ammo: itemTypes.Sniper.gun.maxAmmo}));
+let MachineGun = createItem({itemType: "MachineGun"});
+MachineGun.addComponent(new Gun({ammo: itemTypes.MachineGun.gun.maxAmmo}));
 
 let gunLootTable = new LootTable([
   {item: Pistol, weight: 1}, 

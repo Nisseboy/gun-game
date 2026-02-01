@@ -114,7 +114,7 @@ class SceneGame extends Scene {
 
       gun.ammo--;
       for (let end of ends) world.appendChild(new Ob({},[new BulletPath(start.copy(), new Vec().from(end), 0.02)]));
-      playAudio(nde.aud[gun.shootAud], start);
+      playAudio(nde.aud[gun.ob.item.info.gun.shootAud], start);
     });
     client.on("changeHp", (entityId, hp) => {
       let entity = idLookup[entityId];
@@ -334,7 +334,8 @@ class SceneGame extends Scene {
       renderer.set("fill", "rgba(255, 0, 0, 0.51)");
       renderer.rect(pos, new Vec(size.x * Math.max(this.player.entity.hp / 100, 0), size.y));
       renderer.set("fill", "rgba(255, 238, 0, 0.51)");
-      renderer.rect(new Vec(pos.x, pos.y - 0.1 - size.y), new Vec(size.x * this.playerInput.weaponUser.reloadProgress, size.y));
+      if (this.playerInput.weaponUser._gun?.reloadTimer)
+        renderer.rect(new Vec(pos.x, pos.y - 0.1 - size.y), new Vec(size.x * this.playerInput.weaponUser._gun.reloadTimer.progress, size.y));
 
 
 

@@ -10,7 +10,6 @@ let assetPaths = [
   {"path":"floor/1.png"},
   {"path":"floor/drain.png"},
   {"path":"gun/machinegun.png"},
-  {"path":"gun/pistol,shotgun,sniper,smg,machinegun.png"},
   {"path":"gun/pistol.png"},
   {"path":"gun/pistolShot.mp3"},
   {"path":"gun/reloadMagazineEnd.mp3"},
