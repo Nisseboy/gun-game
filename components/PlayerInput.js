@@ -100,7 +100,7 @@ class PlayerInput extends Component {
     if (this.inventory.heldItem) {
       this.weaponUser.targetPos.from(this.mousePos);
 
-      this.weaponUser.trigger = nde.getKeyPressed("Shoot");
+      this.weaponUser.trigger = nde.getKeyPressed("Use/Shoot");
 
       if (nde.getKeyDown("Reload")) {
         this.weaponUser.reload();

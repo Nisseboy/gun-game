@@ -59,35 +59,36 @@ function createWorld() {
   noise.seed(5);
   
   let grid = new Grid({size: new Vec(5, 5)});
-  grid.random();
-
-  let itemHolder = new Ob({name: "itemHolder", id: 1});
-
-  let player0 = EntityDuck.copy();
-  player0.name += " 0";
-  player0.id = 0;
-  player0.transform.pos.set(2.5, 2.5);
+  grid.g = [
+    1,1,0,1,1,
+    1,0,0,0,1,
+    1,0,0,0,1,
+    1,0,1,0,1,
+    1,1,1,1,1,
+  ];
 
   let w = new Ob({name: "root"}, [
     grid,
   ], [
-
-    new Ob({name: "text", pos: new Vec(0, -4)}, [
-      new TextRenderer("[w a s d shift], [arrow keys]", {}),
-    ]),
     
-    itemHolder,
-
-    player0,
   ]);
 
+  let itemHolder = new Ob({name: "itemHolder", id: 1});
+  w.appendChild(itemHolder);
 
   for (let i = 0; i < 40; i++) {
-    let p = gunLootTable.pick().copy();
-    p.randomizeId();
-    p.transform.pos.from(player0.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(10));
-    itemHolder.appendChild(p);
+    itemHolder.appendChild(createSpawner({
+      pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
+      lootTable: "guns",
+    }));
   }
+  
+  
+  let player0 = EntityDuck.copy();
+  player0.name += " 0";
+  player0.id = 0;
+  player0.transform.pos.set(2.5, 2.5);
+  w.appendChild(player0);
   
   return w;
 }

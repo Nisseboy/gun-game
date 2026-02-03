@@ -127,6 +127,11 @@ function createItem(props = {}) {
     new Item(props),
   ]);
 }
+function createSpawner(props = {}) {
+  return new Ob({name: "Spawner", pos: props.pos}, [
+    new Spawner(props),
+  ]);
+}
 
 
 
@@ -151,10 +156,14 @@ Sniper.addComponent(new Gun({ammo: itemTypes.Sniper.gun.maxAmmo}));
 let MachineGun = createItem({itemType: "MachineGun"});
 MachineGun.addComponent(new Gun({ammo: itemTypes.MachineGun.gun.maxAmmo}));
 
-let gunLootTable = new LootTable([
-  {item: Pistol, weight: 1}, 
-  {item: Shotgun, weight: 1}, 
-  {item: SMG, weight: 1}, 
-  {item: Sniper, weight: 1}, 
-  {item: MachineGun, weight: 1}, 
-]);
+
+
+let lootTables = {
+  guns: new LootTable([
+    {item: Pistol, weight: 1}, 
+    {item: Shotgun, weight: 1}, 
+    {item: SMG, weight: 1}, 
+    {item: Sniper, weight: 1}, 
+    {item: MachineGun, weight: 1}, 
+  ]),
+};

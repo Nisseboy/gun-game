@@ -4395,8 +4395,6 @@ class Ob extends Serializable {
       this.children.push(ob);
       ob.parent = this;
     }
-    
-    
   }
   removeChild(ob) {
     let index = this.children.indexOf(ob);
@@ -4404,6 +4402,20 @@ class Ob extends Serializable {
 
     this.children.splice(index, 1);
     ob.parent = undefined;
+    return true;
+  }
+  replaceChild(original, ...obs) {
+    let index = this.children.indexOf(original);
+    if (index == -1) return false;
+
+    for (let i = 0; i < obs.length; i++) {
+      let ob = obs[i];
+      if (ob.parent) ob.parent.removeChild(ob);
+      ob.parent = this;
+    }
+
+    this.children.splice(index, 1, ...obs);
+    original.parent = undefined;
     return true;
   }
   setParent(ob) {
@@ -4422,6 +4434,12 @@ class Ob extends Serializable {
     for (let i = 0; i < this.children.length; i++) {
       this.children[i].remove();
     }
+  }
+  replace(...obs) {
+    if (!this.parent) return false;
+
+    this.parent.replaceChild(this, ...obs);
+    return true;
   }
 
 

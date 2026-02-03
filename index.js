@@ -26,7 +26,8 @@ nde.controls = {
   "Interact": "f",
   "Open Chat": "Enter",
 
-  "Shoot": "mouse0",
+  "Use/Shoot": "mouse0",
+  "Secondary Use": "mouse0",
   "Reload": "r",
   "Drop Item": "g",
   "Primary Weapon": "1,!",
