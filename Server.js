@@ -4,6 +4,9 @@ url = "https://nisseboy.github.io/gun-game";
 
 let serverId;
 
+const ITEMHOLDERID = 1;
+const SKYID = 2;
+
 class Server extends ServerBase {
   constructor() {
     super();
@@ -58,6 +61,7 @@ class Server extends ServerBase {
 function createWorld() {
   noise.seed(5);
   
+  /*
   let grid = new Grid({size: new Vec(5, 5)});
   grid.g = [
     1,1,0,1,1,
@@ -81,7 +85,18 @@ function createWorld() {
       pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
       lootTable: "guns",
     }));
-  }
+  }*/
+ 
+  let grid = new Grid({size: new Vec(20, 20)});
+  let w = new Ob({name: "root"}, [
+    grid,
+  ], [
+    new Ob({name: "itemHolder", id: ITEMHOLDERID}),
+    new Ob({name: "sky", id: SKYID, pos: grid.size._mul(0.5)}),
+  ]);
+
+  grid.placeRoom(allRooms[1], new Vec(5, 5));
+
   
   
   let player0 = EntityDuck.copy();
@@ -89,6 +104,7 @@ function createWorld() {
   player0.id = 0;
   player0.transform.pos.set(2.5, 2.5);
   w.appendChild(player0);
+  
   
   return w;
 }

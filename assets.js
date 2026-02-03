@@ -7,7 +7,6 @@ let assetPaths = [
   {"path":"duck/step/4.mp3"},
   {"path":"crosshair.png"},
   {"path":"duck/dead.png"},
-  {"path":"floor/1.png"},
   {"path":"floor/drain.png"},
   {"path":"gun/machinegun.png"},
   {"path":"gun/pistol.png"},
@@ -28,6 +27,8 @@ let assetPaths = [
   {"path":"rooms/testRoom2.ob"},
   {"path":"wall/1.png"},
   {"path":"duck/rot.anim"},
-  {"path":"duck/walk.anim"}
+  {"path":"duck/walk.anim"},
+  {"path":"floor/floor.png"},
+  {"path":"ground/grass.png"}
 ];
 let scenePaths = ["SceneEditor","SceneGame","SceneMainMenu","SceneSettings"];

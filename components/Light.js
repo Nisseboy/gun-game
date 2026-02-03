@@ -7,6 +7,10 @@ class Light extends Component {
     this.maxR = props.maxR || 2;
     this.tex = props.tex || "light/1";
     this.brightness = props.brightness || 1;
+    this.smooth = (props.smooth != undefined) ? props.smooth : true;
+
+    this.size = props.size || 0;
+    this.cull = (props.cull != undefined) ? props.cull : true;
   }
 
   start() {
@@ -18,6 +22,8 @@ class Light extends Component {
   }
 
   renderMask() {
+    let size = this.size || settings.lightResolution;
+
     if (!this.lastPos.isEqualTo(this.transform.pos) || this.lastDir != this.transform.dir) {
       this.cached = false;
       this.lastPos.from(this.transform.pos);
@@ -25,11 +31,11 @@ class Light extends Component {
     }
     if (!this.mask) {
       this.cached = false;
-      this.mask = new Img(vecOne._mul(settings.lightResolution));
+      this.mask = new Img(vecOne._mul(size));
     }
-    if (this.mask.size.x != settings.lightResolution) {
+    if (this.mask.size.x != size) {
       this.cached = false;
-      this.mask.resize(vecOne._mul(settings.lightResolution));
+      this.mask.resize(vecOne._mul(size));
     }
 
     if (this.cached) return this.mask;
@@ -53,6 +59,7 @@ class Light extends Component {
       ctx.drawImage(nde.tex[this.tex].canvas, 0, 0, this.mask.size.x, this.mask.size.y);
     }
     
+    this.cached = true;
     return this.mask;
   }
 
@@ -69,8 +76,91 @@ class Light extends Component {
     this.maxR = data.maxR;
     this.tex = data.tex;
     this.brightness = data.brightness;
+    this.smooth = data.smooth;
+
+    this.size = data.size;
+    this.cull = data.cull;
 
     return this;
+  }
+}
+
+class SkyLight extends Light {
+  constructor(props = {}) {
+    super(props);
+    
+    let grid = world.getComponent(Grid);
+    this.cellSize = props.cellSize || 10;
+    this.maxR = grid.size.x / 2;
+    this.size = grid.size.x * this.cellSize;
+
+    this.cull = false;
+    this.smooth = false;
+
+    this.clientOnly = true;
+  }
+
+  renderMask() {    
+    if (!this.mask) {
+      this.cached = false;
+      this.mask = new Img(vecOne._mul(this.size));
+    }
+    if (this.mask.size.x != this.size) {
+      this.cached = false;
+      this.mask.resize(vecOne._mul(this.size));
+    }
+
+    if (this.cached) return this.mask;
+
+
+    let ctx = this.mask.ctx;
+    let size = this.mask.size;
+    let grid = world.getComponent(Grid);
+
+    ctx.fillStyle = "rgba(0, 0, 0, 1)";
+    ctx.fillRect(0, 0, size.x, size.y);
+
+    let padding = 2;
+    ctx.fillStyle = "rgb(255, 255, 255)";
+    let mat;
+    let openings = [];
+    for (let x = 0; x < grid.size.x; x++) {
+      for (let y = 0; y < grid.size.y; y++) {
+        mat = materials[grid.g[x + y * grid.size.x]];
+
+        if (!mat.dark && !mat.solid) ctx.fillRect(x * this.cellSize - padding, y * this.cellSize - padding, this.cellSize + padding * 2, this.cellSize + padding * 2);
+
+        if (mat.dark) {
+          if (materials[grid.g[(x-1) + (y+0) * grid.size.x]].outside) openings.push({pos: new Vec(x, y+1), dir: -Math.PI / 2});
+          if (materials[grid.g[(x+1) + (y+0) * grid.size.x]].outside) openings.push({pos: new Vec(x+1, y), dir: Math.PI / 2});
+          if (materials[grid.g[(x+0) + (y-1) * grid.size.x]].outside) openings.push({pos: new Vec(x, y), dir: 0});
+          if (materials[grid.g[(x+0) + (y+1) * grid.size.x]].outside) openings.push({pos: new Vec(x+1, y+1), dir: Math.PI});
+        }
+      }
+    }
+
+    for (let o of openings) {
+      ctx.save();
+      ctx.translate(o.pos.x * this.cellSize, o.pos.y * this.cellSize);
+      ctx.rotate(o.dir);
+
+      
+      let brightness;
+      for (let x = -padding; x < this.cellSize + padding; x++) {
+        for (let y = -padding; y < this.cellSize * 2 + padding; y++) {
+          brightness = (1 - y / this.cellSize / 2) * 255;
+          ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`
+          ctx.fillRect(x, y, 1, 1);
+
+        }
+      }
+
+      ctx.restore();
+    }
+
+
+    this.cached = true;    
+    return this.mask;
   }
 }
 
@@ -94,13 +184,13 @@ function renderLights(cam) {
     for (let i = 0; i < lights.length; i++) {
       let light = lights[i];
       let sqd = light.transform.pos._subV(cam.pos).sqMag();
-      if (sqd > (light.maxR + cam.w / 2) ** 2) {
+      if (light.cull && sqd > (light.maxR + cam.w / 2) ** 2) {
         light.mask = undefined;
         continue;
       }
 
       if (light.brightness != 1) lightTex.ctx.filter = `brightness(${lights[i].brightness*100}%)`;
-      renderLight(light, cam);
+      renderLight(light);
       if (light.brightness != 1) lightTex.ctx.filter = `brightness(100%)`;
     }
   });
@@ -111,10 +201,11 @@ function renderLights(cam) {
   renderer.image(lightTex, cam.pos._subV(size.mul(0.5)), size.mul(2));
 
 }
-function renderLight(light, cam) {
+function renderLight(light) {
   let mask = light.renderMask();
   let size = new Vec(light.maxR * 2, light.maxR * 2);
 
+  lightTex.ctx.imageSmoothingEnabled = light.smooth;
   lightTex.image(mask, light.transform.pos._subV(size.mul(0.5)), size.mul(2));
 }
 

@@ -4362,7 +4362,7 @@ class Ob extends Serializable {
     if (this.id == id) return this;
 
     for (let i = 0; i < this.children.length; i++) {
-      let res = this.children[i].findId(1);
+      let res = this.children[i].findId(id);
       
       if (res) return res;
     }

@@ -223,9 +223,13 @@ class SceneGame extends Scene {
     
 
     idLookup = world.createLookupTable();
-    itemHolder = world.findId(1);
+    itemHolder = world.findId(ITEMHOLDERID);
 
     this.setPlayer(idLookup[client.id]);
+    
+    console.log(world.findId(SKYID).id);
+    
+    world.findId(SKYID).addComponent(new SkyLight());
   }
   setPlayer(entity) {
     this.player = entity;

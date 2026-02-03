@@ -80,6 +80,29 @@ class Grid extends Component {
     ];
   }
 
+  placeRoom(room, pos) {
+    let grid2 = room.getComponent(Grid);
+    let g = grid2.g;
+    let size = grid2.size;
+
+    for (let x = 0; x < size.x; x++) {
+      for (let y = 0; y < size.y; y++) {
+        let i = x + y * size.x;
+        let thisI = pos.x + x + (pos.y + y) * this.size.x;
+
+        this.g[thisI] = g[i];
+      }
+    }
+
+    let itemHolder = this.ob.findId(ITEMHOLDERID);
+    for (let i = 0; i < room.children.length; i++) {
+      let c = room.children[i].copy();
+      c.getComponent(Transform).pos.addV(pos);
+      c.randomizeId();
+      
+      itemHolder.appendChild(c);
+    }
+  }
 
   raycast(pos, dirVec, maxDist) {return this.raycastFast(pos.x, pos.y, dirVec.x, dirVec.y, maxDist)}
   raycastFast(posx, posy, dirx, diry, maxDist = 100) {
@@ -97,6 +120,8 @@ class Grid extends Component {
     // avoid division by zero
     const deltaX = dirx !== 0 ? Math.abs(1 / dirx) : 1e6;
     const deltaY = diry !== 0 ? Math.abs(1 / diry) : 1e6;
+
+    let mat;
 
     // distance to first grid boundary
     let tMaxX =
@@ -127,13 +152,14 @@ class Grid extends Component {
 
       if (t >= maxDist || mapX < 0 || mapX >= gridW || mapY < 0 || mapY >= gridH) break;
 
-      if (this.g[mapX + mapY * gridW]) {
+      mat = this.g[mapX + mapY * gridW];
+      if (materials[mat]?.solid) {
         return {
           x: posx + dirx * t,
           y: posy + diry * t,
           d: t,
           isHor: !hitVertical,
-          mat: this.g[mapX + mapY * gridW],
+          mat: mat,
         };
       }
     }
