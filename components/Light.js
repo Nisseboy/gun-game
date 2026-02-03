@@ -218,7 +218,6 @@ function renderLight(light) {
 
 let visionMask = new Img(vecOne);
 function renderVision(cam) {
-  return
   if (visionMask.size.x != settings.visionResolution) visionMask.resize(vecOne._mul(settings.visionResolution));
 
   let size = new Vec(cam.w, cam.w * nde.ar);
