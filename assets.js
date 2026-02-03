@@ -29,6 +29,7 @@ let assetPaths = [
   {"path":"duck/rot.anim"},
   {"path":"duck/walk.anim"},
   {"path":"floor/floor.png"},
-  {"path":"ground/grass.png"}
+  {"path":"ground/grass.png"},
+  {"path":"pumpkin.png"}
 ];
 let scenePaths = ["SceneEditor","SceneGame","SceneMainMenu","SceneSettings"];

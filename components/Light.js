@@ -228,6 +228,7 @@ function renderVision(cam) {
   world.grid.createMask(cam.pos, halfSize.x, cam.ar, visionMask);
 
   renderer.image(visionMask, cam.pos._subV(halfSize), size);
+  renderer.image(nde.tex["pumpkin"], cam.pos._subV(halfSize), size);
 }
 
 
