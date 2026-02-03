@@ -227,8 +227,6 @@ class SceneGame extends Scene {
 
     this.setPlayer(idLookup[client.id]);
     
-    console.log(world.findId(SKYID).id);
-    
     world.findId(SKYID).addComponent(new SkyLight());
   }
   setPlayer(entity) {

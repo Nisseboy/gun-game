@@ -89,15 +89,21 @@ class SkyLight extends Light {
   constructor(props = {}) {
     super(props);
     
-    let grid = world.getComponent(Grid);
     this.cellSize = props.cellSize || 10;
-    this.maxR = grid.size.x / 2;
-    this.size = grid.size.x * this.cellSize;
 
     this.cull = false;
     this.smooth = false;
 
     this.clientOnly = true;
+  }
+
+
+  start() {
+    super.start();
+
+    let grid = world.getComponent(Grid);
+    this.maxR = grid.size.x / 2;
+    this.size = grid.size.x * this.cellSize;
   }
 
   renderMask() {    
@@ -148,7 +154,7 @@ class SkyLight extends Light {
       let brightness;
       for (let x = -padding; x < this.cellSize + padding; x++) {
         for (let y = -padding; y < this.cellSize * 2 + padding; y++) {
-          brightness = (1 - y / this.cellSize / 2) * 255;
+          brightness = (1 - y / (this.cellSize * 2)) * 255;
           ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`
           ctx.fillRect(x, y, 1, 1);
 
@@ -212,6 +218,7 @@ function renderLight(light) {
 
 let visionMask = new Img(vecOne);
 function renderVision(cam) {
+  return
   if (visionMask.size.x != settings.visionResolution) visionMask.resize(vecOne._mul(settings.visionResolution));
 
   let size = new Vec(cam.w, cam.w * nde.ar);
