@@ -91,9 +91,6 @@ class SceneSettings extends Scene {
         ],
 
         events: {
-          input: [function (value) {
-            setBackgroundCol();
-          }],
           change: [function (value) {
             localStorage.setItem(settingsName, JSON.stringify(settings));          
           }],
