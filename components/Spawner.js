@@ -6,7 +6,6 @@ class Spawner extends Component {
     this.spawnOb = props.ob;
     
     this.clientOnly = true;
-    this.active = false;
   }
 
   start() {

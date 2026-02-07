@@ -98,6 +98,15 @@ function createWorld() {
   grid.placeRoom(allRooms[1], new Vec(5, 5));
 
   
+  let itemHolder = w.findId(ITEMHOLDERID);
+  for (let i = 0; i < 40; i++) {
+    itemHolder.appendChild(createSpawner({
+      pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
+      lootTable: "guns",
+    }));
+  }
+
+
   
   let player0 = EntityDuck.copy();
   player0.name += " 0";

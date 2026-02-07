@@ -145,6 +145,7 @@ class SkyLight extends Light {
       }
     }
 
+    ctx.globalCompositeOperation = "lighten";
     for (let o of openings) {
       ctx.save();
       ctx.translate(o.pos.x * this.cellSize, o.pos.y * this.cellSize);
@@ -163,6 +164,7 @@ class SkyLight extends Light {
 
       ctx.restore();
     }
+    ctx.globalCompositeOperation = "source-over";
 
 
     this.cached = true;    

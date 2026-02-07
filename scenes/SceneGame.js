@@ -385,6 +385,11 @@ function setActive(entity, active) {
   
   client.send("set", entity.id, "active", active);
 }
+function setVisible(entity, visible) {
+  entity.visible = visible;
+  
+  client.send("set", entity.id, "visible", visible);
+}
 function setParent(entity, parent) {    
   client.fire("setParent", entity.id, parent.id);
   client.send("setParent", entity.id, parent.id);

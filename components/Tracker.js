@@ -1,10 +1,9 @@
 class Tracker extends Component {
   constructor(props = {}) {
-    super();
+    super(props);
     
-    this.active = props.active != undefined ? props.active : true;
-    this.trackPos = true;
-    this.trackDir = true;
+    this.trackPos = props.trackPos == undefined ? true : props.trackPos;
+    this.trackDir = props.trackDir == undefined ? true : props.trackDir;
 
     this.clientOnly = true;
   }
@@ -17,7 +16,7 @@ class Tracker extends Component {
   }
   
   update() {
-    if (this.active) this.track();
+    this.track();
   }
 
   track() {

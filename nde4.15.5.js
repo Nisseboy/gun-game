@@ -1059,7 +1059,7 @@ class Img extends Renderable {
 
       if (!nde.tex) nde.tex = {};
       nde.tex[name] = this;
-      
+
       if (segments) {
         for (let i of segmentNames) {
           let img = new Img();
@@ -1175,6 +1175,9 @@ class Img extends Renderable {
     this.ctx.rect(pos.x, pos.y, size.x, size.y);
     this.ctx.fill();
     this.ctx.stroke();
+  }
+  clearRect(pos, size) {
+    this.ctx.clearRect(pos.x, pos.y, size.x, size.y);
   }
   ellipse(pos, size) {    
     this.ctx.beginPath();    
@@ -3943,23 +3946,32 @@ class TransitionNoise extends TransitionBase {
 
 /* src/ECS/components/Component.js */
 class Component extends Serializable {
-  constructor() {
+  constructor(props = {}) {
     super();
 
     this.hasStarted = false;
+    this.hasInit = false;
 
     this.ob = undefined;
     this.transform = undefined;
 
-    this.clientOnly = false;
+    this.lastActive = false;
+    this.active = props.active == undefined ? true : props.active;
+    this.visible = props.visible == undefined ? true : props.visible;
+
+
+    this.clientOnly = props.clientOnly || false;
   }
+  
 
-
+  init() {}
   start() {}
-  remove() {}
   update(dt) {}
   render() {}
-
+  
+  enable() {}
+  disable() {}
+  remove() {}
 
 
   on(...args) {return this.ob.on(...args)}
@@ -3977,7 +3989,12 @@ class Component extends Serializable {
   from(data) {
     super.from(data);
 
-    this.clientOnly = data.clientOnly;
+    if (data.active != undefined) this.active = data.active;
+    if (data.visible != undefined) this.visible = data.visible;
+
+    if (data.clientOnly != undefined) this.clientOnly = data.clientOnly;
+
+    if (data.hasInit != undefined) this.hasInit = data.hasInit;
 
     return this;
   }
@@ -3994,16 +4011,12 @@ class Component extends Serializable {
 
 /* src/ECS/components/Transform.js */
 class Transform extends Component {
-  constructor(pos = undefined, dir = 0, size = undefined) {
+  constructor(props = {}) {
     super();
 
-    this.pos = pos;
-    if (!pos) this.pos = new Vec(0, 0);
-
-    this.dir = dir;
-
-    this.size = size;
-    if (!size) this.size = new Vec(1, 1);
+    this.pos = props.pos || new Vec(0, 0);
+    this.dir = props.dir || 0;
+    this.size = props.size || new Vec(1, 1);
   }
 
   from(data) {
@@ -4234,6 +4247,8 @@ class AudioSource extends Component {
 
 
 /* src/ECS/Ob.js */
+let DEFAULTTRANSFORMCOMPONENT = Transform;
+
 class Ob extends Serializable {
   constructor(props = {}, components = [], children = []) {
     super();
@@ -4242,17 +4257,21 @@ class Ob extends Serializable {
     this.children = [];
     this.id = props.id;
     if (this.id == undefined) this.randomizeId();
-    this.active = true;
+
+    this.lastActive = false;
+    this.active = props.active == undefined ? true : props.active;
+    this.visible = props.visible == undefined ? true : props.visible;
 
     this.components = components;
-    this.transform = this.getComponent(Transform);
+    this.transform = this.getComponent(DEFAULTTRANSFORMCOMPONENT);
     if (!this.transform) {
-      this.transform = new Transform();
+      this.transform = new DEFAULTTRANSFORMCOMPONENT({
+        pos: props.pos,
+        dir: props.dir,
+        size: props.size,
+      });
       this.components.unshift(this.transform);
     }
-    if (props.pos) this.transform.pos.from(props.pos);
-    if (props.size) this.transform.size.from(props.size);
-    if (props.dir != undefined) this.transform.dir = props.dir;
 
     for (let c of this.components) {
       c.ob = this;
@@ -4268,14 +4287,38 @@ class Ob extends Serializable {
   }
 
 
-
   update(dt) {
+    if (!this.active) {
+      if (this.lastActive) {
+        for (let i = 0; i < this.components.length; i++) {
+          if (this.components[i].active) this.components[i].disable();
+        }
+
+        this.lastActive = false;
+      }
+      return;
+    }
+
     for (let i = 0; i < this.components.length; i++) {
       let c = this.components[i];
 
+      if (!c.hasInit) {
+        c.init();
+        c.hasInit = true;
+      }
       if (!c.hasStarted) {
         c.start();
         c.hasStarted = true;
+      }
+
+      if (!c.active) {
+        if (c.lastActive) c.disable();
+        c.lastActive = false;
+        continue;
+      }
+      if (!c.lastActive) {
+        c.enable();
+        c.lastActive = true;
       }
 
       c.update(dt);
@@ -4284,16 +4327,21 @@ class Ob extends Serializable {
     for (let i = 0; i < this.children.length; i++) {
       this.children[i].update(dt);
     }
+
+    if (!this.lastActive) {
+      for (let i = 0; i < this.components.length; i++) {
+        if (this.components[i].active) this.components[i].enable();
+      }
+      this.lastActive = true;
+    }
   }
   render() {
-    if (!this.active) return;
-
     for (let i = 0; i < this.components.length; i++) {
-      this.components[i].render();
+      if (this.components[i].visible) this.components[i].render();
     }
 
     for (let i = 0; i < this.children.length; i++) {
-      this.children[i].render();
+      if (this.children[i].visible) this.children[i].render();
     }
   }
   
@@ -4424,10 +4472,14 @@ class Ob extends Serializable {
   }
 
 
+  
   remove() {
     if (this.parent) this.parent.removeChild(this);
 
+    this.active = false;
+
     for (let i = 0; i < this.components.length; i++) {
+      this.components[i].active = false;
       this.components[i].remove();
     }
 
@@ -4449,12 +4501,14 @@ class Ob extends Serializable {
 
     this.name = data.name;
     this.id = data.id;
-    this.active = data.active;
 
+    this._active = false;
+    if (data.active) this.active = true;
+    if (data.visible != undefined) this.visible = data.visible;
 
     this.components = [];
     for (let c of data.components) this.components.push(cloneData(c));
-    this.transform = this.getComponent(Transform);
+    this.transform = this.getComponent(DEFAULTTRANSFORMCOMPONENT);
 
     for (let i = 0; i < this.components.length; i++) {
       let c = this.components[i];
@@ -4466,7 +4520,7 @@ class Ob extends Serializable {
     for (let i = 0; i < data.children.length; i++) {
       let c2 = cloneData(data.children[i]);
       this.appendChild(c2);
-    }
+    }    
 
 
     return this;
@@ -4991,6 +5045,8 @@ class NDE {
     this.debugStats = {};
   
     this.renderer._(()=>{      
+      this.renderer.clearRect(vecZero, this.renderer.size);
+
       for (let i = 0; i < this.timers.length; i++) this.timers[i].tick(gameDt);
       
       this.scene.lastIndex = 0; 
@@ -5045,6 +5101,10 @@ class NDE {
     });
     
   
+    
+    this.flushRenderer();
+  }
+  flushRenderer() {
     this.mainImg.ctx.imageSmoothingEnabled = false;
     this.mainImg.image(this.renderer, vecZero, this.mainImg.size);
   }
@@ -5071,7 +5131,7 @@ class NDE {
   }
 
   loadAsset(assetDescriptor) {
-    if (typeof assetDescriptor == "string") assetDescriptor = {path: assetDescriptor};    
+    if (typeof assetDescriptor == "string") assetDescriptor = {path: assetDescriptor};
 
     let path = assetDescriptor.path;
     let split1 = path.split(".");
@@ -5131,11 +5191,10 @@ var getDeltaAngle = function () {
     return equivalent(target - current);
   }
 }();
-
-
-
-
-
-
 let deg2rad = Math.PI / 180;
 let rad2deg = 180 / Math.PI;
+
+
+
+
+

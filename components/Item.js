@@ -31,12 +31,12 @@ class Item extends Component {
 
     this.on("pickup", () => {
       this.held = true;
-      this.ob.active = false;
+      this.ob.visible = false;
       this.ob.interactable.active = false;
     });
     this.on("drop", () => {
       this.held = false;
-      this.ob.active = true;
+      this.ob.visible = true;
       this.ob.interactable.active = true;
     });
 

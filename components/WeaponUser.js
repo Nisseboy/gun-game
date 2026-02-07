@@ -16,7 +16,7 @@ class WeaponUser extends Component {
 
   set item(value) {        
     if (this.item?.item.held) {
-      setActive(this.item, false);
+      setVisible(this.item, false);
       setParent(this.item, itemHolder);
     }
     if (this._gun) {
@@ -32,7 +32,7 @@ class WeaponUser extends Component {
       this._info = this.item.item.info;
 
       this.update(0);
-      setActive(this.item, true);
+      setVisible(this.item, true);
       setParent(this.item, world);
       this.item.item.tracker.snap();
     }
@@ -114,7 +114,7 @@ class WeaponUser extends Component {
       this.reloading = false;
 
       if (this.weapon.item?.held) {        
-        setActive(this.weapon, false);
+        setVisible(this.weapon, false);
         setParent(this.weapon, itemHolder);
       }
     }
@@ -127,7 +127,7 @@ class WeaponUser extends Component {
       this.ammo = ammos[this.weapon.gun.ammoType];
 
       this.update(0);
-      setActive(this.weapon, true);
+      setVisible(this.weapon, true);
       setParent(this.weapon, world);
       this.weapon.item.tracker.snap();
     }
