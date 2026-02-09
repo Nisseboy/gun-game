@@ -7,6 +7,8 @@ class Item extends Component {
     this._itemType = undefined;
     this.info = undefined;
     this.itemType = props.itemType || "Item";
+
+    this.amount = props.amount || 1;
   }
 
   set itemType(value) {
@@ -23,25 +25,35 @@ class Item extends Component {
     this.tracker = new Tracker({active: false});
     this.addComponent(this.tracker);
 
+    let interactable = this.getComponent(Interactable);
+
     this.on("interact", (ob) => {
       let inventory = ob.getComponent(Inventory);
       
       inventory.pickup(this.ob);
     });
-
-    this.on("pickup", () => {
+    
+    this.on("pickup", () => {      
       this.held = true;
       this.ob.visible = false;
-      this.ob.interactable.active = false;
+      interactable.active = false;            
     });
     this.on("drop", () => {
       this.held = false;
       this.ob.visible = true;
-      this.ob.interactable.active = true;
+      interactable.active = true;
     });
 
+    if(this.held) {
+      this.ob.visible = false;
+      interactable.active = false;    
+    } else {
+      this.ob.visible = true;
+      interactable.active = true;
+    }
+
     this.ob.name = this.itemType;
-    this.ob.interactable.text = this.itemType;
+    interactable.text = this.itemType;
 
     this.getComponent(Sprite).tex = this.info.tex;
     this.transform.size.from(nde.tex[this.info.tex].size).mul(1/20);
@@ -49,7 +61,7 @@ class Item extends Component {
   
 
 
-  sendPickup() {
+  sendPickup() {    
     sendFire(this.ob, "pickup");
   }
   sendDrop() {
@@ -64,6 +76,8 @@ class Item extends Component {
     this.tags = data.tags;
     this.held = data.held;
     this.itemType = data._itemType;
+
+    this.amount = data.amount;
 
     return this;
   }

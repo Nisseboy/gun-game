@@ -1,6 +1,10 @@
 let idLookup;
 let world;
+let player;
 let itemHolder;
+
+let uiInventoryHolder;
+let uiItemHolder;
 
 class SceneGame extends Scene {
   constructor() {
@@ -10,10 +14,30 @@ class SceneGame extends Scene {
     this.cam.w = 16;
     this.cam.renderW = nde.w;
 
-    this.uicam = new Camera(new Vec(800, 450));
-    this.uicam.w = 1600;
-    this.uicam.renderW = nde.w;
+    this.ui = new UIRoot({
+      style: {
+        size: uicam.size,
+      },
+      children: [],
+    }); 
 
+    this.initInventoryUI();
+    this.initChatBox();
+
+    this.ui.initUI();
+  }
+
+  initInventoryUI() {
+    this.playerInventory = undefined;
+
+    uiInventoryHolder = new UIBase();
+    uiItemHolder = new UIBase();
+    this.ui.children.push(
+      uiInventoryHolder,
+      uiItemHolder,
+    );
+  }
+  initChatBox() {
     this.uiChat = new UISettingText({
       value: "",
 
@@ -51,33 +75,27 @@ class SceneGame extends Scene {
         sendChat(this.player, value);
       }]},
     }),
-    this.ui = new UIRoot({
-      style: {
-        size: new Vec(1600, 900),
-      },
-      children: [
-        new UIBase({
-          style: {
-            position: "absolute",
-            pos: new Vec(0, 900),
-            selfPos: new Vec(0, -1),
-            direction: "column",
-            align: new Vec(0, 2),
-            gap: 4,
-            padding: 5,
-          },
-
-          children: [
-            this.uiChat,
-            this.uiChatBox,
-          ],
-        }),
-      ],
-    }); 
     this.shownChatMessages = [];
+
+    this.ui.children.push(new UIBase({
+      style: {
+        position: "absolute",
+        pos: new Vec(0, 900),
+        selfPos: new Vec(0, -1),
+        direction: "column",
+        align: new Vec(0, 2),
+        gap: 4,
+        padding: 5,
+      },
+
+      children: [
+        this.uiChat,
+        this.uiChatBox,
+      ],
+    }));
   }
 
-  setupListeners() {
+  setupListeners() {    
     client.on("world", world => {      
       if (world) this.loadWorld(cloneData(world));
     });
@@ -207,13 +225,14 @@ class SceneGame extends Scene {
       e[steps[steps.length - 1]](...args);
     });
     //Fire event on entity
-    client.on("fire", ( entityId, eventName, ...args) => { 
+    client.on("fire", ( entityId, eventName, ...args) => {       
       let e = idLookup[entityId];
 
       args = args.map(e => {
         if (value.type) return cloneData(e);
         else return e;
       });
+      
       e.fire(eventName, ...args);
     });
   }
@@ -230,12 +249,39 @@ class SceneGame extends Scene {
     world.findId(SKYID).addComponent(new SkyLight());
   }
   setPlayer(entity) {
+    let inventory = new Inventory({size: 12, w: 5, startIndex: 2});
+    inventory.clientOnly = true;
+    inventory.tags[0] = "weapon";
+    inventory.tags[1] = "weapon";
+    inventory.allowedHeldSlots = [0, 1];
+    inventory.heldIndex = 0; 
+
+    player = entity;
     this.player = entity;
     this.player.addComponent(
       new PlayerInput(),
       new Tracker(),
+      inventory,
     );
     this.playerInput = this.player.getComponent(PlayerInput);
+    this.playerInput.inventory = inventory;
+
+    uiItemHolder.children = [];
+    uiInventoryHolder.children = [];
+
+    openInventory(inventory, {
+      pos: uicam.size,
+      selfPos: new Vec(-1, -1),
+      padding: 5,
+
+      inventory: {
+        w: 1,
+        startIndex: 0,
+        stopIndex: 2,
+      }
+    });
+
+    
   }
 
   start() {
@@ -248,6 +294,19 @@ class SceneGame extends Scene {
     }
     if (nde.getKeyEqual(key,"Open Chat")) {
       this.uiChatBox.setFocus(true);
+    }
+    
+    if (nde.getKeyEqual(key, "Inventory")) {
+      if (this.playerInventory) {
+        closeInventory(this.playerInventory);
+        this.playerInventory = undefined;
+      } else {
+        this.playerInventory = openInventory(this.player.getComponent(Inventory), {
+          pos: uicam.size._mul(0.5),
+          selfPos: new Vec(-0.5, -0.5),
+          padding: 5,
+        });
+      }
     }
   }
   inputup(key) {
@@ -276,8 +335,6 @@ class SceneGame extends Scene {
   render() {
     let cam = this.cam;
     cam.renderW = nde.w;
-    let uicam = this.uicam;
-    uicam.renderW = nde.w;
     renderer.set("fill", "rgba(255, 255, 255, 1");
 
 
@@ -316,10 +373,6 @@ class SceneGame extends Scene {
 
     renderer._(() => {
       cam.scaleRenderer(renderer);
-
-      let inv = this.player.inventory;
-      inv.renderSlot(0, new Vec(cam.w - 1.1, cam.w * cam.ar - 2.15));
-      inv.renderSlot(1, new Vec(cam.w - 1.1, cam.w * cam.ar - 1.1));
 
 
       renderer.set("fill", "rgba(0, 0, 0, 0)");
@@ -375,6 +428,8 @@ function sendFire(entity, eventName, ...args) {
 function createEntity(entity, parent) {
   client.fire("createEntity", entity.serialize(), parent.id);
   client.send("createEntity", entity.serialize(), parent.id);
+
+  return idLookup[entity.id];
 }
 function removeEntity(entity) {
   client.fire("removeEntity", entity.id);

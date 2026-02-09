@@ -7,6 +7,8 @@ class PlayerInput extends Component {
     this.speed = 4;
     this.mousePos = new Vec(0, 0);
 
+    this.inventory = undefined;
+    
     this.clientOnly = true;
   }
 
@@ -16,33 +18,25 @@ class PlayerInput extends Component {
     this.weaponUser = new WeaponUser();
     this.addComponent(this.weaponUser);
 
-    this.inventory = new Inventory({size: 12});
-    this.inventory.clientOnly = true;
-    this.addComponent(this.inventory);
-
-    this.inventory.w = 5;
-    this.inventory.renderStart = 2;
-    this.inventory.slots[0].tag = "weapon";
-    this.inventory.slots[1].tag = "weapon";
-    this.inventory.allowedHeldSlots = [0, 1];
-    this.inventory.heldIndex = 0; 
-
     this.light = new Light({maxR: 2, brightness: 0.5, tex: "light/1"});
     this.light.clientOnly = true;
     this.addComponent(this.light);
+    
+    let items = [];
+    for (let slotIndex in this.inventory.slots) {      
+      let ob = lootTables["guns"].pick();
+      let item = ob.getComponent(Item);
+      item.amount = Math.ceil(Math.random() * 10);
+      ob = createEntity(ob, itemHolder);
 
-    return;
-    for (let slot of this.inventory.slots) {      
-      if (slot.tag) continue;
-
-      let item = Pistol.copy();
-      item.randomizeId();
-      world.appendChild(item);
-      idLookup[item.id] = item;
-
-      slot.item = item.id;
-      slot.amount = Math.floor(Math.random() * 40);
+      items.push(ob);
     }
+
+    setTimeout(() => {
+      for (let ob of items) {      
+        this.inventory.pickup(ob);
+      }
+    }, 100);
   }
   
   update(dt) {    
@@ -70,14 +64,6 @@ class PlayerInput extends Component {
     if (nde.getKeyDown("Interact") && this.closestInteractable) {
       this.closestInteractable.interact(this.ob);      
     }
-    if (nde.getKeyDown("Inventory")) {
-      this.inventory.open = !this.inventory.open;
-    }
-    if (this.inventory.open) {
-      this.inventory.offset.from(this.transform.pos);
-      this.inventory.offset.x -= this.inventory.w / 2;
-      this.inventory.offset.y += 0.5;
-    }
     if (nde.getKeyDown("Primary Weapon")) {
       this.inventory.heldIndex = 0;
     }
@@ -88,16 +74,16 @@ class PlayerInput extends Component {
       this.inventory.scrollHeld(Math.sign(nde.scrolled));
     }
 
-    if (this.inventory.heldSlot) {
+    if (this.inventory.held) {
       if (nde.getKeyDown("Drop Item")) {
         this.inventory.drop(this.inventory.heldIndex, 1000, false);
       }
     }
 
     
-    if (this.weaponUser.item != this.inventory.heldItem) this.weaponUser.item = this.inventory.heldItem;
+    if (this.weaponUser.held != this.inventory.held) this.weaponUser.held = this.inventory.held;
     
-    if (this.inventory.heldItem) {
+    if (this.inventory.held) {
       this.weaponUser.targetPos.from(this.mousePos);
 
       this.weaponUser.trigger = nde.getKeyPressed("Use/Shoot");
@@ -124,7 +110,7 @@ class PlayerInput extends Component {
     if (this.weaponUser._gun) {
       renderer._(() => {
         if (this.weaponUser._info.gun.laser) {
-          let laserDir = this.weaponUser.item.transform.dir;
+          let laserDir = this.weaponUser.held.transform.dir;
           renderer.set("stroke", "rgb(255, 0, 0)");
           renderer.set("lineWidth", 0.005);
           renderer.line(this.weaponUser._gun.tipPos, this.weaponUser._gun.tipPos._addV(new Vec(Math.cos(laserDir), Math.sin(laserDir)).mul(100)));

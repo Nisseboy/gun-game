@@ -8,16 +8,16 @@ class Interactable extends Component {
   }
 
   start() {
-    this.ob.interactable = this;
+    this.ob.interactable = this;    
   }
 
   enable() {
-    interactable.push(this);
+    interactable.push(this);    
   }
-  disable() {
+  disable() {    
     let index = interactable.indexOf(this);
     if (index == -1) return;
-    interactable.splice(index, 1);
+    interactable.splice(index, 1);    
   }
 
   interact(...args) {

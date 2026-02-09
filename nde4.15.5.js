@@ -481,10 +481,28 @@ class Camera extends Serializable {
 
     this.pos = pos || new Vec(0, 0);
 
+    this.size = new Vec(1, 1);
+    this._w = undefined;
     this.w = 16;
+    this._ar = undefined;
     this.ar = props.ar || nde.ar;
 
     this.dir = 0;
+  }
+
+  set w(value) {
+    this._w = value;
+    this.size.set(this.w, this.w * this.ar);
+  }
+  get w() {
+    return this._w;
+  }
+  set ar(value) {
+    this._ar = value;
+    this.size.set(this.w, this.w * this.ar);
+  }
+  get ar() {
+    return this._ar;
   }
 
   from(data) {
@@ -1767,7 +1785,7 @@ let defaultStyle = {
 }
 
 class UIBase {
-  constructor(props) {
+  constructor(props = {}) {
     this.defaultStyle = {};
     this.style = undefined;
 
@@ -2006,7 +2024,7 @@ class UIBase {
       }
       
       c.pos.subV(this.scroll);
-
+      
       c.pos.addV(c.style.pos);
 
       c.pos.addV(c.style.selfPos._mulV(c.size));
@@ -3066,6 +3084,7 @@ class UISettingText extends UISettingBase {
         multiLine: false,
         numberOnly: false,
         autoScroll: false,
+        readOnly: false,
       },
 
       text: {
@@ -3215,105 +3234,10 @@ class UISettingText extends UISettingBase {
     let ctrl = e.ctrlKey;
     let shift = e.shiftKey;
 
-
-    if (e.key == "Backspace") {
-      if (this.cursor2 != undefined) this.removeSelected();
-      else {
-        if (ctrl && this.cursor.x != 0) {
-          this.cursor2 = this.cursor._();
-          this.fillCursorLeft(this.cursor);
-          this.removeSelected();
-        } else {
-          this.removeAtCursor(this.cursor);
-        }
-      }
-
-      this.recalculateSize()
-    
-      this.moveScreenToCursor(this.cursor);
-    }
-    if (e.key == "Delete") {
-      if (this.cursor2 != undefined) this.removeSelected();
-      else {
-        if (ctrl) {
-          this.cursor2 = this.cursor._();
-          this.fillCursorRight(this.cursor2);
-          this.removeSelected();
-        } else {
-          if (this.moveCursorRight(this.cursor))
-            this.removeAtCursor(this.cursor);
-        }
-      }
-
-      this.recalculateSize()
-
-      this.moveScreenToCursor(this.cursor);
-    }
     if (e.key == "Escape") {
       this.setFocus(false);
       return false;
     }
-    if (ctrl) {
-      let key = e.key.toLowerCase();
-      let lines = this.getLines();
-
-      if (e.key == "a") {
-        this.cursor.set(0, 0);
-        this.cursor2 = new Vec(lines[lines.length - 1].length, lines.length - 1);
-      }
-
-      if (["c", "x"].includes(key)) {
-        let oldCursorPos = undefined;
-
-        if (this.cursor2 == undefined) {
-          oldCursorPos = this.cursor._();
-
-          this.cursor.x = 0;
-          this.cursor2 = new Vec(lines[this.cursor.y].length, this.cursor.y);
-        }
-
-        let string = "";
-        if (key == "c") {
-          string = this.getChars(this.cursor, this.cursor2);
-
-          if (oldCursorPos) {
-            this.cursor = oldCursorPos;
-            this.cursor2 = undefined;
-            string += "\n";
-          }
-        }
-        if (key == "x") {
-          string = this.removeSelected();
-
-          if (oldCursorPos) {
-            this.cursor2 = undefined;
-            string += "\n";
-
-            this.moveCursorRight(this.cursor);
-            this.removeAtCursor(this.cursor);
-          }
-        }
-
-        navigator.clipboard.writeText(string);
-        
-      }
-      if (key == "v") {
-        navigator.clipboard.readText().then(string => {
-          if (this.cursor2 != undefined) {
-            this.removeSelected();
-          }
-          this.addAtCursor(this.cursor, string);
-          this.moveScreenToCursor(this.cursor);
-          
-          this.recalculateSize()
-        });
-      }
-
-
-
-      if (["a", "c", "v", "x"].includes(key)) return;
-    }
-
     if (e.key.startsWith("Arrow")) {
       let lines = this.getLines();
 
@@ -3387,6 +3311,100 @@ class UISettingText extends UISettingBase {
       this.maxCursorX = 0;
     }
 
+    if (!this.style.editor.readOnly && e.key == "Backspace") {
+      if (this.cursor2 != undefined) this.removeSelected();
+      else {
+        if (ctrl && this.cursor.x != 0) {
+          this.cursor2 = this.cursor._();
+          this.fillCursorLeft(this.cursor);
+          this.removeSelected();
+        } else {
+          this.removeAtCursor(this.cursor);
+        }
+      }
+
+      this.recalculateSize()
+    
+      this.moveScreenToCursor(this.cursor);
+    }
+    if (!this.style.editor.readOnly && e.key == "Delete") {
+      if (this.cursor2 != undefined) this.removeSelected();
+      else {
+        if (ctrl) {
+          this.cursor2 = this.cursor._();
+          this.fillCursorRight(this.cursor2);
+          this.removeSelected();
+        } else {
+          if (this.moveCursorRight(this.cursor))
+            this.removeAtCursor(this.cursor);
+        }
+      }
+
+      this.recalculateSize()
+
+      this.moveScreenToCursor(this.cursor);
+    }
+    if (ctrl) {
+      let key = e.key.toLowerCase();
+      let lines = this.getLines();
+
+      if (e.key == "a") {
+        this.cursor.set(0, 0);
+        this.cursor2 = new Vec(lines[lines.length - 1].length, lines.length - 1);
+      }
+
+      if (["c", "x"].includes(key)) {
+        let oldCursorPos = undefined;
+
+        if (this.cursor2 == undefined) {
+          oldCursorPos = this.cursor._();
+
+          this.cursor.x = 0;
+          this.cursor2 = new Vec(lines[this.cursor.y].length, this.cursor.y);
+        }
+
+        let string = "";
+        if (key == "c") {
+          string = this.getChars(this.cursor, this.cursor2);
+
+          if (oldCursorPos) {
+            this.cursor = oldCursorPos;
+            this.cursor2 = undefined;
+            string += "\n";
+          }
+        }
+        if (!this.style.editor.readOnly && key == "x") {
+          string = this.removeSelected();
+
+          if (oldCursorPos) {
+            this.cursor2 = undefined;
+            string += "\n";
+
+            this.moveCursorRight(this.cursor);
+            this.removeAtCursor(this.cursor);
+          }
+        }
+
+        navigator.clipboard.writeText(string);
+        
+      }
+      if (!this.style.editor.readOnly && key == "v") {
+        navigator.clipboard.readText().then(string => {
+          if (this.cursor2 != undefined) {
+            this.removeSelected();
+          }
+          this.addAtCursor(this.cursor, string);
+          this.moveScreenToCursor(this.cursor);
+          
+          this.recalculateSize()
+        });
+      }
+
+
+
+      if (["a", "c", "v", "x"].includes(key)) return;
+    }
+
 
     let newText = "";
     
@@ -3395,7 +3413,7 @@ class UISettingText extends UISettingBase {
         newText = "\n";
       } else {
         this.fireChange(true);
-        this.setFocus();
+        this.setFocus(false);
       }
     }
     if (e.key.length == 1) newText = e.key;
@@ -3403,19 +3421,19 @@ class UISettingText extends UISettingBase {
     if (this.style.editor.numberOnly && !["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "*", "/", "+", "-", "(", ")"].includes(newText)) return false;
 
 
+    if (!this.style.editor.readOnly) {
+      if (newText) {
+        if (this.cursor2 != undefined) this.removeSelected();
+        this.addAtCursor(this.cursor, newText);
+        
+        this.recalculateSize()
+        this.moveScreenToCursor(this.cursor);
+      }
 
 
-    if (newText) {
-      if (this.cursor2 != undefined) this.removeSelected();
-      this.addAtCursor(this.cursor, newText);
-      
-      this.recalculateSize()
-      this.moveScreenToCursor(this.cursor);
+      this.fireInput();
     }
-
-
-    this.fireInput();
-
+    
     return false;
   }
 
@@ -3654,8 +3672,8 @@ class UISettingText extends UISettingBase {
     nde.renderer.clipRect(this.pos._add(this.style.padding), this.size._sub(this.style.padding * 2), () => {
       this.children[0].text = this.value;
 
-      if (this.focused) {
-        if ((this.cursorTimer.elapsedTime / this.style.editor.blinkTime) % 1 < 0.5) {
+      if (this.focused) {        
+        if (!this.style.editor.readOnly && (this.cursorTimer.elapsedTime / this.style.editor.blinkTime) % 1 < 0.5) {
           nde.renderer.rect(cursorPos, cursorSize);
         }
 
@@ -3958,7 +3976,6 @@ class Component extends Serializable {
     this.lastActive = false;
     this.active = props.active == undefined ? true : props.active;
     this.visible = props.visible == undefined ? true : props.visible;
-
 
     this.clientOnly = props.clientOnly || false;
   }
@@ -4291,12 +4308,26 @@ class Ob extends Serializable {
     if (!this.active) {
       if (this.lastActive) {
         for (let i = 0; i < this.components.length; i++) {
-          if (this.components[i].active) this.components[i].disable();
+          let c = this.components[i];
+          if (c.active) {
+            c.enable();
+            c.lastActive = false;
+          }
         }
 
         this.lastActive = false;
       }
       return;
+    }
+
+    if (!this.lastActive) {
+      for (let i = 0; i < this.components.length; i++) {
+        let c = this.components[i];
+        if (c.active) {
+          c.enable();
+          c.lastActive = true;
+        }
+      }
     }
 
     for (let i = 0; i < this.components.length; i++) {
@@ -4328,12 +4359,7 @@ class Ob extends Serializable {
       this.children[i].update(dt);
     }
 
-    if (!this.lastActive) {
-      for (let i = 0; i < this.components.length; i++) {
-        if (this.components[i].active) this.components[i].enable();
-      }
-      this.lastActive = true;
-    }
+    this.lastActive = this.active;
   }
   render() {
     for (let i = 0; i < this.components.length; i++) {
@@ -4471,16 +4497,20 @@ class Ob extends Serializable {
     ob.appendChild(this);
   }
 
+  copy(randomizeId = false) {
+    let ob2 = super.copy();
+    if (randomizeId) ob2.randomizeId();
+    return ob2;
+  }
 
   
   remove() {
     if (this.parent) this.parent.removeChild(this);
 
-    this.active = false;
-
     for (let i = 0; i < this.components.length; i++) {
-      this.components[i].active = false;
-      this.components[i].remove();
+      let c = this.components[i];
+      if (c.lastActive) c.disable();
+      c.remove();
     }
 
     for (let i = 0; i < this.children.length; i++) {
@@ -4520,7 +4550,7 @@ class Ob extends Serializable {
     for (let i = 0; i < data.children.length; i++) {
       let c2 = cloneData(data.children[i]);
       this.appendChild(c2);
-    }    
+    }
 
 
     return this;
@@ -4818,12 +4848,12 @@ class NDE {
     
       if (!this.pressed[e.key.toLowerCase()]) {
         if (this.debug) console.log(e.key);
-
-        this.pressed[e.key.toLowerCase()] = true;
-        this.pressedFrame.push(e.key.toLowerCase());
         
         if (!this.fire("keydown", e)) return;
         if (!this.fire("inputdown", e.key.toLowerCase(), e)) return;
+
+        this.pressed[e.key.toLowerCase()] = true;
+        this.pressedFrame.push(e.key.toLowerCase());
       }
     });
     this.on("input_keyup", e => {
@@ -4859,11 +4889,11 @@ class NDE {
       if (!this.pressed["mouse" + e.button]) {
         if (this.debug) console.log("mouse" + e.button);
 
-        this.pressed["mouse" + e.button] = true;
-        this.pressedFrame.push("mouse" + e.button);
-
         if (!this.fire("mousedown", e)) return;
         if (!this.fire("inputdown", "mouse" + e.button, e)) return;
+
+        this.pressed["mouse" + e.button] = true;
+        this.pressedFrame.push("mouse" + e.button);
       }
 
     });
@@ -5034,8 +5064,6 @@ class NDE {
   }
   updateGame(dt) {
     let t1 = performance.now();
-    this.hoveredUIElement = undefined;
-    this.hoveredUIRoot = undefined;
 
     let gameDt = (this.targetFPS == undefined) ? dt * 0.001 : 1 / this.targetFPS;
     let last = this.lastGameDt;
@@ -5053,6 +5081,8 @@ class NDE {
       this.fire("update", gameDt);
       this.fire("afterUpdate", gameDt);
 
+      this.hoveredUIElement = undefined;
+      this.hoveredUIRoot = undefined;
       let t2 = performance.now();
     
       this.fire("render");

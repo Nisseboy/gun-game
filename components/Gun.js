@@ -20,7 +20,8 @@ class Gun extends Component {
   }
 
   get tipPos() {
-    return this.ob.item.transform.pos._addV(this.ob.item.info.gun.tipOffset._rotateZAxis(this.ob.item.transform.dir));
+    let item = this.getComponent(Item);
+    return item.transform.pos._addV(item.info.gun.tipOffset._rotateZAxis(item.transform.dir));
   }
 
   start() {
@@ -28,7 +29,7 @@ class Gun extends Component {
   }
 
   shoot() {
-    let info = this.ob.item.info.gun;
+    let info = this.getComponent(Item).info.gun;
 
     if (this.shootTimer) return;
     if (this.reloadTimer) {

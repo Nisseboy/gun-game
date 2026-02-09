@@ -27,7 +27,11 @@ class LootTable {
       elem = this.elems[i];
       tot += elem.weight;
 
-      if (tot >= r) return elem.item;
+      if (tot < r) continue;
+      
+      let item = elem.item.copy();
+      item.randomizeId();
+      return item;
     }
 
     return this.pick();

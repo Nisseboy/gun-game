@@ -2,6 +2,7 @@ class WeaponUser extends Component {
   constructor() {
     super();
 
+    this._held = undefined;
     this._item = undefined;
     this._gun = undefined;
     this._info = undefined;
@@ -14,49 +15,52 @@ class WeaponUser extends Component {
     this.clientOnly = true;
   }
 
-  set item(value) {        
-    if (this.item?.item.held) {
-      setVisible(this.item, false);
-      setParent(this.item, itemHolder);
+  set held(value) {            
+    if (this._item?.held) {
+      setVisible(this.held, false);
+      setParent(this.held, itemHolder);
     }
     if (this._gun) {
       this._gun.cancelReload();
-    }
+    }        
     
-    this._item = value;
+    this._held = value;
+    this._item = undefined;
     this._gun = undefined;
     this._info = undefined;
+    
 
-    if (this.item) {
-      this._gun = this.item.gun;
-      this._info = this.item.item.info;
+    if (this.held) {
+      this._item = this.held.getComponent(Item);
+      this._gun = this.held.getComponent(Gun);
+      this._info = this._item.info;        
 
-      this.update(0);
-      setVisible(this.item, true);
-      setParent(this.item, world);
-      this.item.item.tracker.snap();
+      this.update();
+      setVisible(this.held, true);
+      setParent(this.held, world);
+      this._item.tracker?.snap();
     }
   }
-  get item() {
-    return this._item;
+  get held() {
+    return this._held;
   }
 
   start() {
 
   }
   
-  update(dt) {
-    if (!this.item) return;
+  update() {
+    if (!this.held) return;
 
-    this.item.transform.pos.from(this.transform.pos);
+    this.held.transform.pos.from(this.transform.pos);
     let rightDir = this.transform.dir + Math.PI / 2;
-    this.item.transform.pos.addV(new Vec(Math.cos(rightDir), Math.sin(rightDir)).mul(0.3));
+    this.held.transform.pos.addV(new Vec(Math.cos(rightDir), Math.sin(rightDir)).mul(0.3));
 
     let tipOffset = this._info.gun?.tipOffset.copy() || new Vec(0.1, 0);
     
-    this.item.transform.dir = Math.atan2(this.targetPos.y - this.item.transform.pos.y, this.targetPos.x - this.item.transform.pos.x) - Math.asin(tipOffset.y / Math.hypot(this.targetPos.x - this.item.transform.pos.x, this.targetPos.y - this.item.transform.pos.y));
+    this.held.transform.dir = Math.atan2(this.targetPos.y - this.held.transform.pos.y, this.targetPos.x - this.held.transform.pos.x) - Math.asin(tipOffset.y / Math.hypot(this.targetPos.x - this.held.transform.pos.x, this.targetPos.y - this.held.transform.pos.y));
 
-    this.item.item.tracker.track();
+    this._item.tracker?.track();
 
 
     if (!this._gun) return;
