@@ -19,7 +19,9 @@ class Server extends ServerBase {
 
     this.on("connection", (id, conn) => {      
       this.fire("createEntity", id, this.createPlayer(id).serialize(), world.id);
-      this.send(id, "world", world.serialize());      
+      let w = world.copy();
+      w.stripClientComponents();
+      this.send(id, "world", w.serialize());      
       this.sendAll("sendChat", undefined, id + " connected.");
     });
     this.on("disconnection", (id, conn) => {

@@ -21,7 +21,7 @@ class Inventory extends Component {
 
   set heldIndex(value) {
     this._heldIndex = value;
-    this.held = idLookup[this.slots[this.heldIndex]];    
+    if (idLookup) this.held = idLookup[this.slots[this.heldIndex]];    
   }
   get heldIndex() {
     return this._heldIndex;
@@ -58,28 +58,34 @@ class Inventory extends Component {
   pickup(item) {
     for (let i = 0; i < this.slots.length; i++) {
       let res = this.putInSlot(item, i)
-      if (res) return res;
+      if (!res) return;
     }
+    return item;
   }
   putInSlot(ob, slotIndex) {
-    if (!ob) return;
+    if (!ob) return ob;
 
     let item = ob.getComponent(Item);
 
     let slotOb = idLookup[this.slots[slotIndex]];    
     if (slotOb) {
-      if (slotOb.name != ob.name) return;
+      if (slotOb.name != ob.name) return ob;
 
-      let slotItem = slotOb.getComponent(Item);
-      if (slotItem.amount >= item.info.stackSize) return;      
+      let slotItem = slotOb.getComponent(Item);  
+      slotItem.amount += item.amount;
 
-      slotItem.amount++;
+      let diff = Math.max(slotItem.amount - slotItem.info.stackSize, 0);
+      if (diff) {
+        slotItem.amount -= diff;
+        item.amount = diff;
+        return ob;
+      }
 
       item.sendPickup();
       removeEntity(ob);
       
     } else {
-      if (!this.checkAllowedTags(slotIndex, item)) return;
+      if (!this.checkAllowedTags(slotIndex, item)) return ob;
 
       this.slots[slotIndex] = ob.id;
       item.sendPickup();
@@ -89,43 +95,41 @@ class Inventory extends Component {
       if (slotIndex == this.heldIndex) this.held = ob;
     }
 
-    return slotOb;
+    return;
   }
-
-  drop(slotIndex, amount = 1, randomize = true) {
-    let ob = idLookup[this.slots[slotIndex]];
-    if (!ob) return 0;
+  getFromSlot(slotIndex, amount = Infinity) {
+    let ob = idLookup[this.slots[slotIndex]];    
+    if (!ob) return;
+    
     let item = ob.getComponent(Item);
 
-    amount = Math.min(amount, item.amount);
+    let ob2 = item.split(amount);
 
-    if (amount == item.amount) {
-      setParent(item, itemHolder);
-      item.sendDrop();
+    if (item.amount <= 0) {
       this.slots[slotIndex] = undefined;
 
       if (slotIndex == this.heldIndex) {
         this.heldIndex = this.heldIndex;
       }
-    } else {
-      let ob2 = ob.copy(true);
-      let item2 = ob2.getComponent(Item);
-
-      item.amount -= amount;
-      item2.amount = amount;
-      item2.held = false;
-
-      createEntity(ob2, itemHolder);
-
-      ob = ob2;
-      item = item2;
     }
 
-    let transform = ob.getComponent(Transform);
+    return ob2;
+  }
+
+  drop(slotIndex, amount = 1, randomize = true) {
+    let ob = this.getFromSlot(slotIndex, amount);
+    if (!ob) return;
+
+    let item = ob.getComponent(Item);
+    item.sendDrop();
+
     if (randomize) {
+      let transform = ob.getComponent(Transform);
       transform.pos.from(this.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(2));
       transform.dir = Math.random() * Math.PI * 2;
     } 
+
+    return ob;
   }
   checkAllowedTags(slotIndex, item) {
     let tags = this.tags[slotIndex];
@@ -158,7 +162,7 @@ class Inventory extends Component {
 
     this.open = data._open;
 
-    this.slots = data.slots;
+    this.slots = data.slots.map(e => {return e == null ? undefined : e});
     this.tags = data.tags;
 
     this.allowedHeldSlots = data.allowedHeldSlots;

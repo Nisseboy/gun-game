@@ -2024,7 +2024,7 @@ class UIBase {
       }
       
       c.pos.subV(this.scroll);
-      
+
       c.pos.addV(c.style.pos);
 
       c.pos.addV(c.style.selfPos._mulV(c.size));
@@ -4095,9 +4095,9 @@ class Sprite extends Component {
     this.ob.sprite = this;
   }
 
-  render() {
+  updateTexture() {
     if (!this.tex) return;
-    
+
     if (!this.texture) {
       this.tex = nde.getTex(this.tex);
       let texture = nde.tex[this.tex];
@@ -4125,7 +4125,13 @@ class Sprite extends Component {
     if (this.stateMachineImg) {
       this.texture = this.stateMachineImg.choose();
     }
+  }
 
+  render() {
+    if (!this.tex) return;
+
+    this.updateTexture();
+    
     nde.renderer._(() => {
       nde.renderer.translate(this.transform.pos);
       if (this.transform.dir) nde.renderer.rotate(this.transform.dir);
@@ -4143,7 +4149,7 @@ class Sprite extends Component {
     return this;
   }
   strip() {
-    delete this._texture;
+    delete this.texture;
     delete this.animation;
     delete this.stateMachineImg;
     delete this.ob.sprite;
@@ -4497,11 +4503,6 @@ class Ob extends Serializable {
     ob.appendChild(this);
   }
 
-  copy(randomizeId = false) {
-    let ob2 = super.copy();
-    if (randomizeId) ob2.randomizeId();
-    return ob2;
-  }
 
   
   remove() {
@@ -4524,7 +4525,11 @@ class Ob extends Serializable {
     return true;
   }
 
-
+  copy(randomizeId = false) {
+    let ob2 = super.copy();
+    if (randomizeId) ob2.randomizeId();
+    return ob2;
+  }
 
   from(data) {
     super.from(data);
@@ -5081,10 +5086,10 @@ class NDE {
       this.fire("update", gameDt);
       this.fire("afterUpdate", gameDt);
 
-      this.hoveredUIElement = undefined;
-      this.hoveredUIRoot = undefined;
       let t2 = performance.now();
     
+      this.hoveredUIElement = undefined;
+      this.hoveredUIRoot = undefined;
       this.fire("render");
       if (this.transition) this.transition.render();
       this.fire("afterRender");

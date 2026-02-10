@@ -1,3 +1,5 @@
+let itemUISize = 80;
+
 class UIInventory extends UIBase {
   constructor(props = {}) {
     super(props);
@@ -58,6 +60,8 @@ class UISlot extends UIBase {
     this.inventory = props.inventory;
     this.i = props.i;
 
+    this.pass = undefined;
+
     this.defaultStyle = {
       padding: 1,
 
@@ -69,57 +73,69 @@ class UISlot extends UIBase {
       new UIImage({
         image: nde.tex["inventory/slot"],
         style: {
-          minSize: new Vec(80, 80),
+          minSize: new Vec(itemUISize - 2, itemUISize - 2),
         }
       }),
     ];
     this.children[0].calculateSize();     
 
     this.interactable = true;
+    
+    this.on("mousedown", (e)=>{this.mousedown(e)});
   }
+
+  mousedown(e) {
+    if (!cursorItem.ob) {
+      let ob = idLookup[this.inventory.slots[this.i]];
+      if (!ob) return;
+
+      let amount = e.button == 2 ? Math.ceil(ob.getComponent(Item).amount / 2) : Infinity;
+      cursorItem.ob = this.inventory.getFromSlot(this.i, amount);
+      cursorItem.item = cursorItem.ob.getComponent(Item);
+      cursorItem.amount = cursorItem.item.amount;
+
+      cursorItem.button = undefined;
+
+
+      nde.on("mousedown", inventoryDownFunc, true);
+
+      return;
+    } else {
+      inventoryDownFunc(e);
+    }
+  }
+
 
   render() {
     this.children[0].image = nde.tex[(this.i == this.inventory.heldIndex) ? "inventory/heldSlot" : "inventory/slot"];
 
-    if (this.hovered) super.render();
+    if (this.hovered || this.pass) super.render();
 
-    
     renderer._(()=>{
       renderer.translate(this.pos);
+
       let ob = idLookup[this.inventory.slots[this.i]];
+      let item = ob?.getComponent(Item);
+
+      if (this.pass) {
+        let startAmount = this.pass.item.amount;
+
+        let amount = this.pass.amount;
+        if (item) {
+          amount -= Math.max(item.amount + amount - item.info.stackSize, 0);
+        }
+
+
+        this.pass.item.amount = amount + (item?.amount || 0);
+        this.pass.item.render();
+        this.pass.item.amount = startAmount - amount;
+
+        return;
+      }
+
       if (ob) {
-        let item = ob.getComponent(Item);
+        item.render();
 
-        let size = ob.transform.size;
-        let ar = size.y / size.x;
-
-        let s = this.size.x;
-        if (ar <= 1) size = new Vec(s, s*ar);
-        else size = new Vec(s/ar, s);
-
-        renderer._(() => {
-          renderer.translate(this.size._mul(0.5));
-          renderer.rotate(-Math.PI/4);
-
-          renderer.translate(size._mul(-0.5));
-          renderer.image(ob.getComponent(Sprite).texture, vecZero, size);
-        });
-
-
-        renderer.set("fill", "rgb(255,255,255)");
-
-        if (item.amount != 1) {
-          renderer.set("textAlign", ["right", "bottom"]);
-          renderer.set("font", "20px monospace");
-          renderer.text(item.amount, new Vec(0.9, 0.95).mulV(this.size));
-        }
-
-        let gun = ob.getComponent(Gun);
-        if (gun) {
-          renderer.set("textAlign", ["center", "bottom"]);
-          renderer.set("font", "20px monospace");
-          renderer.text(`${gun.ammo}/${ob.item.info.gun.maxAmmo}`, new Vec(0.5, 0.9).mulV(this.size));
-        }
         return;
       }
       
@@ -135,6 +151,112 @@ class UISlot extends UIBase {
       }
     });
   }
+}
+
+let cursorItem = {
+  ob: undefined,
+  item: undefined,
+
+  button: undefined,
+
+  passed: [],
+  amount: undefined,
+  lastHovered: undefined,
+}
+
+function inventoryDownFunc(e) {
+  if (cursorItem.button) return;
+
+  cursorItem.button = e.button;
+  cursorItem.item.amount = cursorItem.amount;
+  for (let pass of cursorItem.passed) pass.elem.pass = undefined;
+  cursorItem.passed.length = 0;
+  cursorItem.lastHovered = undefined;
+
+  nde.on("mousemove", inventoryMoveFunc, true);
+  nde.on("mouseup", inventoryUpFunc, true);
+  inventoryMoveFunc(e);
+
+  return false;
+}
+function inventoryMoveFunc(e) {  
+  let elem = nde.hoveredUIElement;
+  if (!(elem instanceof UISlot) || elem == cursorItem.lastHovered || cursorItem.passed.length >= cursorItem.amount) return;
+  cursorItem.lastHovered = elem;
+
+  let ob = idLookup[elem.inventory.slots[elem.i]];
+  if (ob && ob.name != cursorItem.ob.name) return;
+
+  let passed = cursorItem.passed;
+  let existing = passed.find(e=>e.elem==elem);
+  
+  if (!existing) {
+    let item = ob?.getComponent(Item);
+
+    let pass = {
+      elem: elem, 
+      amount: 1,
+      slotItem: item,
+      item: cursorItem.item,
+    };
+
+    if (item && item.amount >= item.info.stackSize) return;
+    if (!elem.inventory.checkAllowedTags(elem.i, cursorItem.item)) return;
+
+    cursorItem.passed.push(pass);
+    elem.pass = pass;
+  }
+
+  if (cursorItem.button == 0) {
+    let amount = Math.floor(cursorItem.amount / passed.length);
+    for (let pass of passed) pass.amount = amount;
+  }
+  
+}
+function inventoryUpFunc(e) {
+  if (e.button != cursorItem.button) return;
+
+  nde.off("mousemove", inventoryMoveFunc);
+  nde.off("mouseup", inventoryUpFunc);
+
+  let item = cursorItem.item;
+  item.amount = cursorItem.amount;
+
+  cursorItem.button = undefined;
+
+  if (cursorItem.passed.length > 0) {
+    for (let pass of cursorItem.passed) {
+      pass.elem.pass = undefined;
+
+      if (!pass.slotItem) {
+        let ob = item.split(pass.amount);
+        pass.elem.inventory.putInSlot(ob, pass.elem.i);
+      } else {
+        pass.slotItem.amount += pass.amount;
+        let diff = Math.max(pass.slotItem.amount - pass.slotItem.info.stackSize, 0);
+        pass.slotItem.amount -= diff;
+        item.amount -= pass.amount - diff; 
+      }
+    }
+    cursorItem.passed.length = 0;
+    cursorItem.amount = item.amount;
+
+    if (item.amount > 0) return;
+
+  } else {
+    let ob = cursorItem.ob;
+    if (e.button == 2) ob = ob.getComponent(Item).split(1);
+    
+    ob.transform.pos.from(scenes.game.cam.untransformVec(nde.mouse));
+    ob.getComponent(Item).sendDrop();
+
+    cursorItem.amount = item.amount;
+    if (e.button == 2 && item.amount > 0) return;
+  }
+
+  nde.off("mousedown", inventoryDownFunc);
+  cursorItem.ob = undefined;
+  cursorItem.item = undefined;
 }
 
 

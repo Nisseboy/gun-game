@@ -96,7 +96,7 @@ class SceneGame extends Scene {
   }
 
   setupListeners() {    
-    client.on("world", world => {      
+    client.on("world", world => {    
       if (world) this.loadWorld(cloneData(world));
     });
 
@@ -107,6 +107,9 @@ class SceneGame extends Scene {
       idLookup[e.id] = e;      
 
       if (e.id == client.id) this.setPlayer(e);
+
+      e.update(1/60);
+      e.update(1/60);
     });
     client.on("removeEntity", (entityId) => {
       idLookup[entityId]?.remove();
@@ -155,10 +158,7 @@ class SceneGame extends Scene {
       if (entityId == client.id) {
         let inventory = entity.inventory;
         for (let i = 0; i < inventory.slots.length; i++) {
-          let slot = inventory.slots[i];
-          if (slot.amount > 0) {
-            inventory.drop(i, slot.amount);
-          }
+          inventory.drop(i, Infinity);
         }
 
         this.deathTimer = new TimerTime(5, () => {
@@ -236,10 +236,9 @@ class SceneGame extends Scene {
       e.fire(eventName, ...args);
     });
   }
-  loadWorld(w) {
+  loadWorld(w) {    
     world = w;
     if (client.id != 0) world.stripClientComponents();
-    
 
     idLookup = world.createLookupTable();
     itemHolder = world.findId(ITEMHOLDERID);
@@ -407,8 +406,17 @@ class SceneGame extends Scene {
     });
 
     uicam._(renderer, () => {
+      if (cursorItem.ob) cursorItem.item.amount = cursorItem.amount;
+
       this.uiChat.parent.style.render = (this.uiChatBox.focused || this.shownChatMessages.length > 0) ? "normal" : "hidden";
       this.ui.renderUI();
+
+      if (cursorItem.ob) {
+        let pos = uicam.untransformVec(nde.mouse)._sub(itemUISize * 0.5);
+        renderer.translate(pos);
+        if (cursorItem.item.amount) cursorItem.item.render();
+        renderer.translate(pos._mul(-1));
+      }
     });
   }
 }

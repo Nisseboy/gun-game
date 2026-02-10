@@ -22,6 +22,7 @@ class PlayerInput extends Component {
     this.light.clientOnly = true;
     this.addComponent(this.light);
     
+    return;
     let items = [];
     for (let slotIndex in this.inventory.slots) {      
       let ob = lootTables["guns"].pick();
