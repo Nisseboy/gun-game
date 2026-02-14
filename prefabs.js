@@ -1,6 +1,4 @@
 let itemTypes = {
-  "Item": {},
-
   "Pistol": {
     tex: "gun/pistol",
     gun: {
@@ -58,7 +56,7 @@ let itemTypes = {
       reloadAud: "gun/reloadMagazine",
     },
   },
-  "MachineGun": {
+  "Machine Gun": {
     tex: "gun/machinegun",
     gun: {
       ammoType: AMMOTYPE.heavy,
@@ -72,6 +70,31 @@ let itemTypes = {
       reloadAud: "gun/reloadMagazine",
     },
   },
+
+  "Light Ammo": {
+    tex: "ammo/light",
+    stackSize: 30,
+
+    ammo: {
+      type: AMMOTYPE.light,
+    }
+  },
+  "Heavy Ammo": {
+    tex: "ammo/heavy",
+    stackSize: 12,
+
+    ammo: {
+      type: AMMOTYPE.heavy,
+    }
+  },
+  "Shotgun Shell": {
+    tex: "ammo/shotgun",
+    stackSize: 12,
+
+    ammo: {
+      type: AMMOTYPE.shotgun,
+    }
+  },
 };
 
 for (let i in itemTypes) {
@@ -80,6 +103,8 @@ for (let i in itemTypes) {
   if (type.stackSize == undefined) type.stackSize = 1;
   if (type.tags == undefined) type.tags = "";
   if (type.tex == undefined) type.tex = "duck/1";
+  if (type.scale == undefined) type.scale = 1;
+  if (type.components == undefined) type.components = [];
 
   let g = type.gun;
   if (g) {
@@ -96,6 +121,15 @@ for (let i in itemTypes) {
 
     if (type.tags.length != 0) type.tags += ",";
     type.tags += "weapon";
+
+    type.components.push(Gun);
+  }
+
+  let a = type.ammo;
+  if (a) {
+    if (a.type == undefined) a.type = AMMOTYPE.light;
+
+    type.scale *= 0.5;
   }
 }
 function processGunSprites() {
@@ -120,50 +154,71 @@ function processGunSprites() {
 }
 
 function createItem(props = {}) {
-  return new Ob({}, [
+  if (typeof props == "string") props = {itemType: props};
+
+  let ob = new Ob({}, [
     new Sprite(),
     new AudioSource(),
     new Interactable(),
     new Item(props),
   ]);
+
+  let type = itemTypes[props.itemType];
+  for (let c of type.components) {
+    ob.addComponent(new c());
+  }
+
+  return ob;
 }
 function createSpawner(props = {}) {
   return new Ob({name: "Spawner", pos: props.pos}, [
     new Spawner(props),
   ]);
 }
+function createContainer(props = {}) {
+  let ob = new Ob({
+    name: props.name || "Chest",
+  }, [
+    new Sprite("duck/1"),
+    new Interactable(),
+    new Inventory(props),
+  ]);
+
+  return ob;
+}
 
 
-
-let EntityDuck = new Ob({
+let EntityPlayerInventory = new Inventory({size: hotbarSize * 3, w: hotbarSize, startIndex: hotbarSize});
+    EntityPlayerInventory.tags[0] = "weapon";
+    EntityPlayerInventory.tags[1] = "weapon";
+    EntityPlayerInventory.tags[2] = "!weapon";
+    EntityPlayerInventory.tags[3] = "!weapon";
+    EntityPlayerInventory.tags[4] = "!weapon";
+    EntityPlayerInventory.allowedHeldSlots = [0, 1, 2, 3, 4];
+    EntityPlayerInventory.heldIndex = 0; 
+let EntityPlayer = new Ob({
   name: "Duck",
 }, [
   new Sprite("duck/1"),
   new Entity({health: 100}),
   new Duck(),
   new AudioSource(),
+  EntityPlayerInventory,
 ]);
 
 
-let Pistol = createItem({itemType: "Pistol"});
-Pistol.addComponent(new Gun({ammo: itemTypes.Pistol.gun.maxAmmo}));
-let Shotgun = createItem({itemType: "Shotgun"});
-Shotgun.addComponent(new Gun({ammo: itemTypes.Shotgun.gun.maxAmmo}));
-let SMG = createItem({itemType: "SMG"});
-SMG.addComponent(new Gun({ammo: itemTypes.SMG.gun.maxAmmo}));
-let Sniper = createItem({itemType: "Sniper"});
-Sniper.addComponent(new Gun({ammo: itemTypes.Sniper.gun.maxAmmo}));
-let MachineGun = createItem({itemType: "MachineGun"});
-MachineGun.addComponent(new Gun({ammo: itemTypes.MachineGun.gun.maxAmmo}));
+
 
 
 
 let lootTables = {
   guns: new LootTable([
-    {item: Pistol, weight: 1}, 
-    {item: Shotgun, weight: 1}, 
-    {item: SMG, weight: 1}, 
-    {item: Sniper, weight: 1}, 
-    {item: MachineGun, weight: 1}, 
+    {item: createItem({itemType: "Pistol"}), weight: 1}, 
+    {item: createItem({itemType: "Shotgun"}), weight: 1}, 
+    {item: createItem({itemType: "SMG"}), weight: 1}, 
+    {item: createItem({itemType: "Sniper"}), weight: 1}, 
+    {item: createItem({itemType: "Machine Gun"}), weight: 1}, 
   ]),
 };
+
+lootTables["all"] = new LootTable(Object.keys(itemTypes).map(type=>createItem(type)));

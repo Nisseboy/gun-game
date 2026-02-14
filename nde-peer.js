@@ -45,6 +45,13 @@ function connectToServer(id) {
 
 
 
+function getPeerId() {
+  let id = localStorage.getItem("peer-id");
+  if (id) return parseInt(id);
+  id = Math.floor(Math.random() * 1000000);
+  localStorage.setItem("peer-id", id);
+  return id;
+}
 function checkDevServer() {
   let id = localStorage.getItem("peerjs-dev");
   if (!id || id == "undefined" || (client && id == client.serverId)) return;
@@ -153,7 +160,7 @@ class Client extends ClientBase {
 
     this.serverId = id;
   
-    this.id = Math.floor(Math.random() * 10000);
+    this.id = getPeerId();
     
     if (peer.open) this.connect();
     peer.on("open", () => {

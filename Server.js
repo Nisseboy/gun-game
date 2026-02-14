@@ -14,17 +14,22 @@ class Server extends ServerBase {
 
   init() {
     super.init();
-    scenes.game.loadWorld(createWorld());
-    setTimeout(()=>{client.fire("world");}, 0);
+
+    setTimeout(()=>{
+      scenes.game.loadWorld(this.createWorld());
+      client.fire("world");
+    }, 0);
 
     this.on("connection", (id, conn) => {      
-      this.fire("createEntity", id, this.createPlayer(id).serialize(), world.id);
+      this.fire("createEntity", id, world.getComponent(PlayerStore).get(id).serialize(), world.id);
       let w = world.copy();
       w.stripClientComponents();
       this.send(id, "world", w.serialize());      
       this.sendAll("sendChat", undefined, id + " connected.");
     });
     this.on("disconnection", (id, conn) => {
+      world.getComponent(PlayerStore).store(idLookup[id]);
+
       this.sendAll("mult", [
         ["sendChat", undefined, id + " disconnected."],
         ["removeEntity", id],
@@ -35,7 +40,7 @@ class Server extends ServerBase {
     });
 
     this.on("respawn", (id) => {      
-      this.sendAll("createEntity", this.createPlayer(id).serialize(), world.id);
+      this.sendAll("createEntity", world.getComponent(PlayerStore).get(id).serialize(), world.id);
     });
 
 
@@ -49,73 +54,39 @@ class Server extends ServerBase {
 
   }
 
-  createPlayer(id) {
-    let player = EntityDuck.copy();
-    player.name += " " + id;
-    player.id = id;
-    player.transform.pos.set(0, 0);
-    return player;
-  }
-}
 
-
-
-function createWorld() {
-  noise.seed(5);
+  createWorld() {
+    noise.seed(5);
   
-  /*
-  let grid = new Grid({size: new Vec(5, 5)});
-  grid.g = [
-    1,1,0,1,1,
-    1,0,0,0,1,
-    1,0,0,0,1,
-    1,0,1,0,1,
-    1,1,1,1,1,
-  ];
+    let grid = new Grid({size: new Vec(20, 20)});
+    let w = new Ob({name: "root"}, [
+      grid,
+      new PlayerStore(),
+    ], [
+      new Ob({name: "itemHolder", id: ITEMHOLDERID}),
+      new Ob({name: "sky", id: SKYID, pos: grid.size._mul(0.5)}),
+    ]);
 
-  let w = new Ob({name: "root"}, [
-    grid,
-  ], [
+    grid.placeRoom(allRooms[1], new Vec(5, 5));
+
     
-  ]);
+    let itemHolder = w.findId(ITEMHOLDERID);
+    for (let i = 0; i < 40; i++) {
+      itemHolder.appendChild(createSpawner({
+        pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
+        lootTable: "all",
+      }));
+    }
 
-  let itemHolder = new Ob({name: "itemHolder", id: 1});
-  w.appendChild(itemHolder);
 
-  for (let i = 0; i < 40; i++) {
-    itemHolder.appendChild(createSpawner({
-      pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
-      lootTable: "guns",
-    }));
-  }*/
- 
-  let grid = new Grid({size: new Vec(20, 20)});
-  let w = new Ob({name: "root"}, [
-    grid,
-  ], [
-    new Ob({name: "itemHolder", id: ITEMHOLDERID}),
-    new Ob({name: "sky", id: SKYID, pos: grid.size._mul(0.5)}),
-  ]);
+    let chest = createContainer({size: 10});
+    chest.transform.pos.set(3, 3);
+    w.appendChild(chest);
 
-  grid.placeRoom(allRooms[1], new Vec(5, 5));
-
-  
-  let itemHolder = w.findId(ITEMHOLDERID);
-  for (let i = 0; i < 40; i++) {
-    itemHolder.appendChild(createSpawner({
-      pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
-      lootTable: "guns",
-    }));
+    let player0 = w.getComponent(PlayerStore).get(0);
+    w.appendChild(player0);
+    
+    
+    return w;
   }
-
-
-  
-  let player0 = EntityDuck.copy();
-  player0.name += " 0";
-  player0.id = 0;
-  player0.transform.pos.set(2.5, 2.5);
-  w.appendChild(player0);
-  
-  
-  return w;
 }

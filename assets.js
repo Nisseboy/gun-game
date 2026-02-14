@@ -20,7 +20,6 @@ let assetPaths = [
   {"path":"gun/sniper.png"},
   {"path":"gun/sniperShot.mp3"},
   {"path":"inventory/heldSlot.png"},
-  {"path":"inventory/primary.png"},
   {"path":"inventory/secondary.png"},
   {"path":"inventory/slot.png"},
   {"path":"rooms/testRoom.ob"},
@@ -30,6 +29,8 @@ let assetPaths = [
   {"path":"duck/walk.anim"},
   {"path":"floor/floor.png"},
   {"path":"ground/grass.png"},
-  {"path":"pumpkin.png"}
+  {"path":"pumpkin.png"},
+  {"path":"ammo/light,heavy,shotgun.png"},
+  {"path":"inventory/weapon.png"}
 ];
 let scenePaths = ["SceneEditor","SceneGame","SceneMainMenu","SceneSettings"];

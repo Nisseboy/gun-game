@@ -1837,6 +1837,8 @@ class UIBase {
   }
 
   calculateSize() {
+    for (let c of this.children) c.calculateSize();
+
     let isRow = this.style.direction == "row";
 
     this.size.set(0, 0);
@@ -2145,9 +2147,12 @@ class UIRoot extends UIBase {
   initUI() {
     this.depth = 0;
 
-    this.fitSizePass();
-    this.growSizePass();
-    this.positionPass();
+    this.initPass(this);
+
+    this.calculateSize();
+    this.constrainAllScroll();
+    this.growChildren();
+    this.positionChildren();
 
     this.fire("init");
   }
@@ -2160,32 +2165,24 @@ class UIRoot extends UIBase {
   }
 
 
-
-
-
-  fitSizePass() {
-    this.fitSizePassHelper(this, 0);
-  }
-  fitSizePassHelper(element, depth) {
-    for (let c of element.children) {
-      c.parent = element;
-
-      this.fitSizePassHelper(c, depth + 1);
-    }
-
-    element.uiRoot = this;
-    element.constrainScroll();
-    element.calculateSize();
-
+  initPass(elem, depth = 0) {
+    elem.uiRoot = this;
     this.depth = Math.max(this.depth, depth);
+
+    for (let c of elem.children) {
+      c.parent = elem;
+
+      this.initPass(c, depth + 1);
+    }
   }
 
-  growSizePass() {
-    this.growChildren();
-  }
 
-  positionPass() {
-    this.positionChildren();
+  constrainAllScroll(element = this) {
+    element.constrainScroll();
+
+    for (let c of element.children) {
+      this.constrainAllScroll(c);
+    }
   }
 
 
@@ -4732,6 +4729,7 @@ class NDE {
     this.timers = [];
 
     this.debug = false;
+    this.lastDebugKey = "";
     this.debugStats = {};
 
     this.hoveredUIElement = undefined;
@@ -4852,7 +4850,7 @@ class NDE {
       }
     
       if (!this.pressed[e.key.toLowerCase()]) {
-        if (this.debug) console.log(e.key);
+        if (this.debug) this.lastDebugKey = e.key;
         
         if (!this.fire("keydown", e)) return;
         if (!this.fire("inputdown", e.key.toLowerCase(), e)) return;
@@ -4892,7 +4890,7 @@ class NDE {
     
 
       if (!this.pressed["mouse" + e.button]) {
-        if (this.debug) console.log("mouse" + e.button);
+        if (this.debug) this.lastDebugKey = "mouse" + e.button;
 
         if (!this.fire("mousedown", e)) return;
         if (!this.fire("inputdown", "mouse" + e.button, e)) return;
@@ -5114,6 +5112,8 @@ class NDE {
         debugStats2["target frameTime"] = 1000 / this.targetFPS;
         debugStats2["target fps"] = this.targetFPS;
       }
+
+      debugStats2["key"] = this.lastDebugKey;
 
 
     

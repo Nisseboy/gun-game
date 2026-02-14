@@ -1,45 +1,24 @@
 let openInventories = [];
+let hotbarSize = 5;
 
 class Inventory extends Component {
   constructor(props = {}) {
     super();
 
-    this.w = props.w || 9;
+    this.w = props.w || hotbarSize;
     this.startIndex = props.startIndex || 0;
-    this.stopIndex = props.stopIndex == undefined ? Infinity : props.stopIndex;
+    this.stopIndex = props.stopIndex == undefined ? 1000 : props.stopIndex;
     this.offset = props.offset || new Vec(0, 0);
-
-    this._open = false;
 
     this.slots = new Array(props.size || 1).fill(undefined);
     this.tags = new Array(props.size || 1).fill("");
 
     this.allowedHeldSlots = [];
-    this._heldIndex = undefined;
-    this.held = undefined;
+    this.heldIndex = undefined;
   }
 
-  set heldIndex(value) {
-    this._heldIndex = value;
-    if (idLookup) this.held = idLookup[this.slots[this.heldIndex]];    
-  }
-  get heldIndex() {
-    return this._heldIndex;
-  }
-  set open(value) {
-    this._open = value;
-
-    if (value) {
-      openInventories.push(this);
-    } else {
-      let index = openInventories.indexOf(this);
-      if (index == -1) return;
-
-      openInventories.splice(index, 1);
-    }
-  }
-  get open() {
-    return this._open;
+  get held() {
+    return idLookup[this.slots[this.heldIndex]];
   }
 
   scrollHeld(sign) {
@@ -52,50 +31,58 @@ class Inventory extends Component {
 
   start() {
     this.ob.inventory = this;
+
+    let interactable = this.getComponent(Interactable);
+    if (interactable) {
+      interactable.text = "Open " + this.ob.name;
+    }
+
+    this.on("interact", e => {
+      scenes.game.openInventory(this);
+    });
+
+    this.on("setSlot", (i, id) => {
+      this.slots[i] = id || undefined;
+    });
+    
   }
 
+  pickup(ob, startIndex = 0, stopIndex = Infinity) {
+    if (!ob) return;
 
-  pickup(item) {
-    for (let i = 0; i < this.slots.length; i++) {
-      let res = this.putInSlot(item, i)
+    stopIndex = Math.min(stopIndex, this.slots.length);
+
+    for (let i = startIndex; i < stopIndex; i++) {
+      let slotOb = this.getSlot(i);
+      if (!slotOb || slotOb.name != ob.name) continue;
+
+      ob = slotOb.getComponent(Item).merge(ob);
+      if (!ob) return;
+    }
+
+    for (let i = startIndex; i < stopIndex; i++) {
+      let res = this.putInSlot(ob, i)
       if (!res) return;
     }
-    return item;
+    return ob;
   }
-  putInSlot(ob, slotIndex) {
+  putInSlot(ob, slotIndex, amount = Infinity) {
     if (!ob) return ob;
-
     let item = ob.getComponent(Item);
 
     let slotOb = idLookup[this.slots[slotIndex]];    
     if (slotOb) {
-      if (slotOb.name != ob.name) return ob;
-
       let slotItem = slotOb.getComponent(Item);  
-      slotItem.amount += item.amount;
-
-      let diff = Math.max(slotItem.amount - slotItem.info.stackSize, 0);
-      if (diff) {
-        slotItem.amount -= diff;
-        item.amount = diff;
-        return ob;
-      }
-
-      item.sendPickup();
-      removeEntity(ob);
-      
+      return slotItem.merge(ob, amount);
     } else {
-      if (!this.checkAllowedTags(slotIndex, item)) return ob;
+      if (!this.checkAllowedTags(item, slotIndex)) return ob;
 
-      this.slots[slotIndex] = ob.id;
       item.sendPickup();
-      
+      this.setSlot(ob, slotIndex);
 
-      slotOb = ob;
-      if (slotIndex == this.heldIndex) this.held = ob;
+      let diff = Math.max(item.amount - amount, 0);
+      if (diff) return item.split(diff);  
     }
-
-    return;
   }
   getFromSlot(slotIndex, amount = Infinity) {
     let ob = idLookup[this.slots[slotIndex]];    
@@ -106,11 +93,54 @@ class Inventory extends Component {
     let ob2 = item.split(amount);
 
     if (item.amount <= 0) {
-      this.slots[slotIndex] = undefined;
+      this.setSlot(undefined, slotIndex);
+    }
 
-      if (slotIndex == this.heldIndex) {
-        this.heldIndex = this.heldIndex;
+    return ob2;
+  }
+
+  find(predicate = (ob) => false) {
+    if (typeof predicate == "string") predicate = (ob) => ob.name == predicate;
+
+    for (let i = 0; i < this.slots.length; i++) {
+      let ob = this.getSlot(i);
+      if (!ob || !predicate(ob)) continue;
+
+      return ob;
+    }
+  }
+  findIndex(predicate = (ob) => false) {
+    if (typeof predicate == "string") predicate = (ob) => ob.name == predicate;
+
+    for (let i = 0; i < this.slots.length; i++) {
+      let ob = this.getSlot(i);
+      if (!ob || !predicate(ob)) continue;
+
+      return i;
+    }
+  }
+
+  gather(ob, amount = 1) {
+    let ob2 = ob.copy(true);
+    let item2 = ob2.getComponent(Item);
+
+    item2.amount = 0;
+    for (let i = 0; i < this.slots.length; i++) {
+      let ob3 = this.getSlot(i);
+      let item3 = ob3?.getComponent(Item);
+      if (!item3 || ob3.name != ob.name) continue;
+
+      item2.amount += item3.amount;
+      item3.amount = 0;
+
+      let diff = Math.max(item2.amount - amount, 0);
+      if (diff) {
+        item2.amount -= diff;
+        item3.amount = diff;
+        return ob2;
       }
+
+      this.setSlot(undefined, i)
     }
 
     return ob2;
@@ -131,7 +161,30 @@ class Inventory extends Component {
 
     return ob;
   }
-  checkAllowedTags(slotIndex, item) {
+
+  getSlot(slotIndex) {
+    return idLookup[this.slots[slotIndex]];
+  }
+  setSlot(ob, slotIndex) {
+    if (!this.clientOnly) sendFire(this.ob, "setSlot", slotIndex, ob?.id);
+    else this.fire("setSlot", slotIndex, ob?.id);
+  }
+
+  checkPossible(ob, slotIndex) {
+    let item = ob.getComponent(Item);
+    
+    if (!this.checkAllowedTags(item, slotIndex)) return 0;
+
+    let slotOb = this.getSlot(slotIndex);
+    if (!slotOb) return item.amount;
+    
+    if (slotOb.name != ob.name) return 0;
+    
+    let slotItem = slotOb.getComponent(Item);
+    return Math.min(slotItem.info.stackSize - slotItem.amount, item.amount);
+  }
+
+  checkAllowedTags(item, slotIndex) {
     let tags = this.tags[slotIndex];
     if (!tags) return true;
 
@@ -141,7 +194,7 @@ class Inventory extends Component {
     for (let i = 0; i < splitSlot.length; i++) {
       let tag = splitSlot[i];
       let splitTag = tag.split("!");
-      if (splitTag.length == 1) {
+      if (splitTag.length == 1) {        
         if (!splitItem.includes(tag)) return false;
       } else {
         if (splitItem.includes(splitTag[1])) return false;
@@ -160,13 +213,11 @@ class Inventory extends Component {
     this.stopIndex = data.stopIndex;
     this.offset = new Vec().from(data.offset);
 
-    this.open = data._open;
-
     this.slots = data.slots.map(e => {return e == null ? undefined : e});
     this.tags = data.tags;
 
     this.allowedHeldSlots = data.allowedHeldSlots;
-    this.heldIndex = data._heldIndex;
+    this.heldIndex = data.heldIndex;    
 
     return this;
   }

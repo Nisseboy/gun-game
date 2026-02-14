@@ -29,9 +29,13 @@ nde.controls = {
   "Use/Shoot": "mouse0",
   "Secondary Use": "mouse0",
   "Reload": "r",
-  "Drop Item": "g",
-  "Primary Weapon": "1,!",
-  "Secondary Weapon": "2,\"",
+  "Instamove Modifier": "Shift",
+  "Drop Stack Modifier": "Control",
+  "Drop Item": "q",
+  "Slot 1": "1,!",
+  "Slot 2": "2,\"",
+  "Slot 3": "3,#",
+  "Slot 4": "4,¤",
 
   "Editor Place": "mouse0",
   "Editor Break": "mouse2",
@@ -101,6 +105,7 @@ nde.on("resize", e => {
   //return 432; //new width
 });
 
+nde.on("mousemove", tooltipMove);
 
 let ping = 100;
 let lastPingTime = 0;

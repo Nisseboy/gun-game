@@ -6,8 +6,6 @@ class PlayerInput extends Component {
 
     this.speed = 4;
     this.mousePos = new Vec(0, 0);
-
-    this.inventory = undefined;
     
     this.clientOnly = true;
   }
@@ -22,12 +20,15 @@ class PlayerInput extends Component {
     this.light.clientOnly = true;
     this.addComponent(this.light);
     
+    this.inventory = this.getComponent(Inventory);
+    
+
     return;
     let items = [];
     for (let slotIndex in this.inventory.slots) {      
-      let ob = lootTables["guns"].pick();
+      let ob = lootTables["all"].pick();
       let item = ob.getComponent(Item);
-      item.amount = Math.ceil(Math.random() * 10);
+      item.amount = Math.ceil(Math.random() * item.info.stackSize);
       ob = createEntity(ob, itemHolder);
 
       items.push(ob);
@@ -62,22 +63,26 @@ class PlayerInput extends Component {
       }
     }
 
-    if (nde.getKeyDown("Interact") && this.closestInteractable) {
-      this.closestInteractable.interact(this.ob);      
+    if (nde.getKeyDown("Interact")) {
+      if (this.closestInteractable) this.closestInteractable.interact(this.ob);      
+      else scenes.game.closeInventory();
     }
-    if (nde.getKeyDown("Primary Weapon")) {
-      this.inventory.heldIndex = 0;
-    }
-    if (nde.getKeyDown("Secondary Weapon")) {
-      this.inventory.heldIndex = 1;
-    }
+    if (nde.getKeyDown("Slot 1")) this.inventory.heldIndex = 0;
+    if (nde.getKeyDown("Slot 2")) this.inventory.heldIndex = 1;
+    if (nde.getKeyDown("Slot 3")) this.inventory.heldIndex = 2;
+    if (nde.getKeyDown("Slot 4")) this.inventory.heldIndex = 3;
+    
     if (nde.scrolled) {
       this.inventory.scrollHeld(Math.sign(nde.scrolled));
     }
 
     if (this.inventory.held) {
       if (nde.getKeyDown("Drop Item")) {
-        this.inventory.drop(this.inventory.heldIndex, 1000, false);
+        let amount = 1;
+        if (nde.getKeyPressed("Drop Stack Modifier")) {
+          amount = Infinity;
+        }
+        this.inventory.drop(this.inventory.heldIndex, amount, false);
       }
     }
 

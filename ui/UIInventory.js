@@ -11,7 +11,7 @@ class UIInventory extends UIBase {
       direction: "column",
 
       stroke: "rgba(0, 0, 0, 0.3)",
-      lineWidth: 10,
+      lineWidth: 5,
 
       inventory: {
         w: undefined,
@@ -29,7 +29,7 @@ class UIInventory extends UIBase {
 
     let slotAmount = this.style.inventory.stopIndex - this.style.inventory.startIndex;
 
-    let w = this.style.inventory.w;
+    let w = Math.min(this.style.inventory.w, slotAmount);
     let h = Math.floor(slotAmount / w);
     for (let y = 0; y < h; y++) {
       let row = new UIBase({});
@@ -82,9 +82,36 @@ class UISlot extends UIBase {
     this.interactable = true;
     
     this.on("mousedown", (e)=>{this.mousedown(e)});
+    this.on("inputdown", (e)=>{this.inputdown(e)});
+    
   }
 
   mousedown(e) {
+    let open = scenes.game.openInventories;
+    if (open.length == 0) {
+      this.inventory.heldIndex = this.i;
+      return;
+    }
+
+    
+    if (nde.getKeyPressed("Instamove Modifier")) {
+      let other = open.find(e=>e.inventory!=this.inventory)?.inventory;
+      let start = 0;
+      let stop = Infinity;
+      
+      if (!other) {
+        other = this.inventory;
+        start = this.i >= hotbarSize ? 0 : hotbarSize;
+        stop = this.i >= hotbarSize ? hotbarSize : Infinity;
+      }       
+      
+      let left = other.pickup(this.inventory.getSlot(this.i), start, stop)
+      if (!left) this.inventory.setSlot(undefined, this.i);
+      
+      return;
+    }
+  
+
     if (!cursorItem.ob) {
       let ob = idLookup[this.inventory.slots[this.i]];
       if (!ob) return;
@@ -95,13 +122,28 @@ class UISlot extends UIBase {
       cursorItem.amount = cursorItem.item.amount;
 
       cursorItem.button = undefined;
-
+      cursorItem.pickupTime = performance.now();
+      cursorItem.startElem = this;
 
       nde.on("mousedown", inventoryDownFunc, true);
+      closeTooltip();
 
       return;
-    } else {
+    } else {            
       inventoryDownFunc(e);
+    }
+  }
+
+  inputdown(key) {
+    if (nde.getKeyEqual(key, "Drop Item")) {
+      let amount = 1;
+      if (nde.getKeyPressed("Drop Stack Modifier")) {
+        amount = Infinity;
+      }
+
+      this.inventory.drop(this.i, amount);
+
+      return false;
     }
   }
 
@@ -139,15 +181,16 @@ class UISlot extends UIBase {
         return;
       }
       
+      
       let tags = this.inventory.tags[this.i];
-      if (tags) return;
+      if (!tags) return;
       let tagTex = undefined;
       let splitSlot = tags.split(",");
       for (let i = 0; i < splitSlot.length; i++) {
         tagTex = nde.tex["inventory/" + splitSlot[i]] || tagTex;
       }
       if (tagTex) {
-        renderer.image(tagTex, vecZero, vecOne);
+        renderer.image(tagTex, vecZero, vecOne._mul(itemUISize));
       }
     });
   }
@@ -162,10 +205,19 @@ let cursorItem = {
   passed: [],
   amount: undefined,
   lastHovered: undefined,
+
+  pickupTime: 0,
+  startElem: undefined,
 }
 
 function inventoryDownFunc(e) {
   if (cursorItem.button) return;
+
+  if (performance.now() - cursorItem.pickupTime <= 200 && nde.hoveredUIElement == cursorItem.startElem) {
+    cursorItem.item.merge(nde.hoveredUIElement.inventory.gather(cursorItem.ob, Math.max(cursorItem.item.info.stackSize - cursorItem.amount, 0)));
+    cursorItem.amount = cursorItem.item.amount;
+    return;
+  }
 
   cursorItem.button = e.button;
   cursorItem.item.amount = cursorItem.amount;
@@ -199,9 +251,12 @@ function inventoryMoveFunc(e) {
       slotItem: item,
       item: cursorItem.item,
     };
-
+    
     if (item && item.amount >= item.info.stackSize) return;
-    if (!elem.inventory.checkAllowedTags(elem.i, cursorItem.item)) return;
+    cursorItem.item.amount++;
+    let possible = elem.inventory.checkPossible(cursorItem.ob, elem.i);
+    cursorItem.item.amount--;
+    if (!possible) return;
 
     cursorItem.passed.push(pass);
     elem.pass = pass;
@@ -228,35 +283,56 @@ function inventoryUpFunc(e) {
     for (let pass of cursorItem.passed) {
       pass.elem.pass = undefined;
 
-      if (!pass.slotItem) {
-        let ob = item.split(pass.amount);
-        pass.elem.inventory.putInSlot(ob, pass.elem.i);
-      } else {
-        pass.slotItem.amount += pass.amount;
-        let diff = Math.max(pass.slotItem.amount - pass.slotItem.info.stackSize, 0);
-        pass.slotItem.amount -= diff;
-        item.amount -= pass.amount - diff; 
-      }
+      cursorItem.ob = pass.elem.inventory.putInSlot(cursorItem.ob, pass.elem.i, pass.amount);
     }
     cursorItem.passed.length = 0;
-    cursorItem.amount = item.amount;
 
-    if (item.amount > 0) return;
-
+    if (cursorItem.ob) {
+      cursorItem.item = cursorItem.ob.getComponent(Item);
+      cursorItem.amount = cursorItem.item.amount;
+      return;
+    }
   } else {
-    let ob = cursorItem.ob;
-    if (e.button == 2) ob = ob.getComponent(Item).split(1);
-    
-    ob.transform.pos.from(scenes.game.cam.untransformVec(nde.mouse));
-    ob.getComponent(Item).sendDrop();
+    let elem = nde.hoveredUIElement;
+    if (elem instanceof UISlot) {
+      if (!elem.inventory.checkAllowedTags(cursorItem.item, elem.i)) return;
 
-    cursorItem.amount = item.amount;
-    if (e.button == 2 && item.amount > 0) return;
+      let ob = elem.inventory.getSlot(elem.i);
+      if (ob.name == cursorItem.ob.name) {
+        let item = ob.getComponent(Item);
+
+        cursorItem.ob = item.merge(cursorItem.ob, e.button == 2 ? 1 : Infinity);
+
+        if (cursorItem.ob) {
+          cursorItem.item = cursorItem.ob.getComponent(Item);
+          cursorItem.amount = cursorItem.item.amount;
+          return;
+        }
+      } else {
+        elem.inventory.setSlot(cursorItem.ob, elem.i);
+
+        cursorItem.ob = ob;
+        cursorItem.item = ob.getComponent(Item);
+        cursorItem.amount = cursorItem.item.amount;
+
+        return;
+      }
+    } else {
+      let ob = cursorItem.ob;
+      if (e.button == 2) ob = ob.getComponent(Item).split(1);
+      
+      ob.transform.pos.from(scenes.game.cam.untransformVec(nde.mouse));
+      ob.getComponent(Item).sendDrop();
+
+      cursorItem.amount = item.amount;
+      if (e.button == 2 && item.amount > 0) return;
+    }
   }
 
   nde.off("mousedown", inventoryDownFunc);
   cursorItem.ob = undefined;
   cursorItem.item = undefined;
+  tooltipMove();
 }
 
 
@@ -270,10 +346,72 @@ function openInventory(inventory, style = {}) {
   elem.calculateSize();
   uiInventoryHolder.positionChildren();
 
+  tooltipMove();
+
   return elem;
 }
 
 function closeInventory(inventory) {
   let index = uiInventoryHolder.children.indexOf(inventory);
   uiInventoryHolder.children.splice(index, 1);
+
+  closeTooltip();
+}
+
+
+function tooltipMove() {
+  if (cursorItem.ob || uiInventoryHolder?.children.length <= 1) return;
+
+  let elem = nde.hoveredUIElement;
+  if (elem instanceof UISlot) {
+    if (tooltip.slot != elem) {
+      if (tooltip.elem) closeTooltip();
+
+      openTooltip(elem);
+    }
+
+    if (!tooltip.elem) return;
+
+    tooltip.elem.pos.from(uicam.untransformVec(nde.mouse));
+    let diff = Math.max(tooltip.elem.pos.y + tooltip.elem.size.y - uicam.size.y, 0);
+    tooltip.elem.pos.y -= diff;
+    tooltip.elem.positionChildren();
+  } else if (tooltip.elem)  {
+    closeTooltip();
+  }
+}
+let tooltip = {
+  elem: undefined,
+  slot: undefined,
+};
+function openTooltip(slot) {
+  let ob = slot.inventory.getSlot(slot.i);
+  if (!ob) return;
+  let item = ob.getComponent(Item);
+
+  tooltip.slot = slot;
+  tooltip.elem = new UIBase({
+    style: {
+      fill: "rgba(0, 0, 0, 0.4)",
+      minSize: new Vec(200, 50),
+      padding: 4,
+    },
+
+    children: [
+      new UIText({
+        text: ob.name,
+
+        style: buttonStyle,
+      }),
+    ],
+  });
+
+  scenes.game.ui.children.push(tooltip.elem);
+  tooltip.elem.calculateSize();
+}
+function closeTooltip() {
+  let index = scenes.game.ui.children.indexOf(tooltip.elem);
+  if (index != -1) scenes.game.ui.children.splice(index, 1);
+  tooltip.slot = undefined;
+  tooltip.elem = undefined;
 }

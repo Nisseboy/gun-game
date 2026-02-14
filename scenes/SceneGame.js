@@ -4,7 +4,6 @@ let player;
 let itemHolder;
 
 let uiInventoryHolder;
-let uiItemHolder;
 
 class SceneGame extends Scene {
   constructor() {
@@ -25,16 +24,15 @@ class SceneGame extends Scene {
     this.initChatBox();
 
     this.ui.initUI();
+
+    this.queuedText = [];
+    this.openInventories = [];
   }
 
   initInventoryUI() {
-    this.playerInventory = undefined;
-
     uiInventoryHolder = new UIBase();
-    uiItemHolder = new UIBase();
     this.ui.children.push(
       uiInventoryHolder,
-      uiItemHolder,
     );
   }
   initChatBox() {
@@ -109,7 +107,6 @@ class SceneGame extends Scene {
       if (e.id == client.id) this.setPlayer(e);
 
       e.update(1/60);
-      e.update(1/60);
     });
     client.on("removeEntity", (entityId) => {
       idLookup[entityId]?.remove();
@@ -146,29 +143,7 @@ class SceneGame extends Scene {
       if (entityId == client.id) checkDead(entity);
     });
     client.on("kill", (entityId) => {
-      let entity = idLookup[entityId];
       
-      itemHolder.appendChild(new Ob({name: "Dead " + entity.name}, [
-        entity.transform.copy(),
-        new Sprite("duck/dead"),
-      ]));
-
-      entity.remove();
-
-      if (entityId == client.id) {
-        let inventory = entity.inventory;
-        for (let i = 0; i < inventory.slots.length; i++) {
-          inventory.drop(i, Infinity);
-        }
-
-        this.deathTimer = new TimerTime(5, () => {
-          if (this.deathTimer.progress == 1) {
-            delete this.deathTimer;
-
-            client.send("respawn");
-          }
-        });
-      }
     });
     client.on("sendChat", (entityId, message) => {
       let entity = idLookup[entityId];
@@ -192,6 +167,12 @@ class SceneGame extends Scene {
         e.transform.dir += diffDir * dt;
 
         lastDt = dt;
+
+        if (e.pTimer.progress == 1) {
+          let sqd = (e.transform.pos.x - pos.x) ** 2 + (e.transform.pos.y - pos.y) ** 2;
+          
+          if (sqd > 1.5) e.transform.pos.from(pos);
+        }
       });
     });
     //Set properties of entity
@@ -219,7 +200,7 @@ class SceneGame extends Scene {
       }
 
       args = args.map(e => {
-        if (value.type) return cloneData(e);
+        if (e?.type) return cloneData(e);
         else return e;
       });
       e[steps[steps.length - 1]](...args);
@@ -229,14 +210,14 @@ class SceneGame extends Scene {
       let e = idLookup[entityId];
 
       args = args.map(e => {
-        if (value.type) return cloneData(e);
+        if (e?.type) return cloneData(e);
         else return e;
       });
       
       e.fire(eventName, ...args);
     });
   }
-  loadWorld(w) {    
+  loadWorld(w) {        
     world = w;
     if (client.id != 0) world.stripClientComponents();
 
@@ -246,41 +227,63 @@ class SceneGame extends Scene {
     this.setPlayer(idLookup[client.id]);
     
     world.findId(SKYID).addComponent(new SkyLight());
+
+    this.update(1/60);
   }
   setPlayer(entity) {
-    let inventory = new Inventory({size: 12, w: 5, startIndex: 2});
-    inventory.clientOnly = true;
-    inventory.tags[0] = "weapon";
-    inventory.tags[1] = "weapon";
-    inventory.allowedHeldSlots = [0, 1];
-    inventory.heldIndex = 0; 
-
     player = entity;
     this.player = entity;
     this.player.addComponent(
       new PlayerInput(),
       new Tracker(),
-      inventory,
     );
     this.playerInput = this.player.getComponent(PlayerInput);
-    this.playerInput.inventory = inventory;
 
-    uiItemHolder.children = [];
+    for (let c of uiInventoryHolder.children) closeInventory(c);
     uiInventoryHolder.children = [];
 
-    openInventory(inventory, {
-      pos: uicam.size,
-      selfPos: new Vec(-1, -1),
+    openInventory(this.player.getComponent(Inventory), {
+      pos: new Vec(uicam.size.x / 2, uicam.size.y),
+      selfPos: new Vec(-0.5, -1),
       padding: 5,
+      stroke: "rgba(0,0,0,0)",
 
       inventory: {
-        w: 1,
+        w: hotbarSize,
         startIndex: 0,
-        stopIndex: 2,
+        stopIndex: hotbarSize,
       }
     });
 
     
+  }
+
+  closeInventory() {
+    for (let inv of this.openInventories) {
+      closeInventory(inv);
+    }
+    this.openInventories.length = 0;
+  }
+  openInventory(inventory) {
+    if (this.openInventories.find(e=>e.inventory == inventory)) {
+      this.closeInventory();
+      return;
+    }
+
+    if (this.openInventories.length != 0) this.closeInventory();
+    
+    this.openInventories.push(openInventory(this.player.getComponent(Inventory), {
+      pos: uicam.size._mul(0.5),
+      selfPos: new Vec(-0.5, 0.5),
+      padding: 3,
+    }));
+
+    if (!inventory) return;
+    this.openInventories.push(openInventory(inventory, {
+      pos: uicam.size._mul(0.5),
+      selfPos: new Vec(-0.5, -1),
+      padding: 3,
+    }));
   }
 
   start() {
@@ -289,22 +292,21 @@ class SceneGame extends Scene {
 
   inputdown(key) {
     if (nde.getKeyEqual(key,"Pause")) {
-      nde.transition = new TransitionSlide(scenes.mainMenu, new TimerTime(0.2));
+      if (this.openInventories.length != 0) {
+        this.closeInventory();
+      } else {
+        nde.transition = new TransitionSlide(scenes.mainMenu, new TimerTime(0.2));
+      }
     }
     if (nde.getKeyEqual(key,"Open Chat")) {
       this.uiChatBox.setFocus(true);
     }
     
     if (nde.getKeyEqual(key, "Inventory")) {
-      if (this.playerInventory) {
-        closeInventory(this.playerInventory);
-        this.playerInventory = undefined;
+      if (this.openInventories.length != 0) {
+        this.closeInventory();
       } else {
-        this.playerInventory = openInventory(this.player.getComponent(Inventory), {
-          pos: uicam.size._mul(0.5),
-          selfPos: new Vec(-0.5, -0.5),
-          padding: 5,
-        });
+        this.openInventory(undefined);
       }
     }
   }
@@ -350,9 +352,9 @@ class SceneGame extends Scene {
 
       
       renderer.ctx.globalCompositeOperation = "multiply";
-      renderVision(cam);
-      renderer.ctx.globalCompositeOperation = "multiply";
       renderLights(cam);
+      renderer.ctx.globalCompositeOperation = "multiply";
+      renderVision(cam);
       renderer.ctx.globalCompositeOperation = "source-over";
 
 
@@ -393,7 +395,7 @@ class SceneGame extends Scene {
 
 
 
-      if (this.deathTimer) {
+      if (this.deathTimer) {        
         renderer.set("fill", "rgba(131, 0, 0, 0.27)");
         renderer.set("stroke", "rgba(255, 0, 0, 0)");
         renderer.rect(vecZero, new Vec(cam.w, cam.w * cam.ar));
@@ -470,9 +472,30 @@ function changeHp(entity, hp) {
   client.send("changeHp", entity.id, hp);
 }
 function kill(entity) {
-  client.fire("kill", entity.id);
-  client.send("kill", entity.id);
-  sendChat(undefined, entity.name + " died.");
+  let inventory = entity.getComponent(Inventory).copy();
+  inventory.clientOnly = false;
+  inventory.startIndex = 0;
+  inventory.stopIndex = 1000;
+
+  let ob = new Ob({name: "Dead " + entity.name}, [
+    entity.transform.copy(),
+    new Sprite("duck/dead"),
+    inventory,
+    new Interactable(),
+  ]);
+
+  if (entity == scenes.game.player) {
+    scenes.game.deathTimer = new TimerTime(5, () => {
+      if (scenes.game.deathTimer.progress == 1) {
+        delete scenes.game.deathTimer;
+
+        client.send("respawn");
+      }
+    });
+  }
+
+  removeEntity(entity);
+  createEntity(ob, itemHolder);
 }
 function checkDead(entity) {
   if (entity.entity.hp <= 0) {

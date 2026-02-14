@@ -13,7 +13,7 @@ class Gun extends Component {
   constructor(props = {}) {
     super();
 
-    this.ammo = props.ammo || 0;
+    this.ammo = props.ammo;
 
     this.shootTimer = undefined;
     this.reloadTimer = undefined;
@@ -22,6 +22,11 @@ class Gun extends Component {
   get tipPos() {
     let item = this.getComponent(Item);
     return item.transform.pos._addV(item.info.gun.tipOffset._rotateZAxis(item.transform.dir));
+  }
+
+  init() {
+    if (this.ammo == undefined) this.ammo = this.getComponent(Item).info.gun.maxAmmo;
+    
   }
 
   start() {

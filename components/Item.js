@@ -5,7 +5,6 @@ class Item extends Component {
     this.held = false;
 
     this.itemType = undefined;
-    this.info = undefined;
     this.itemType = props.itemType || "Item";
 
     this.amount = props.amount || 1;
@@ -13,15 +12,16 @@ class Item extends Component {
     this.visible = false;
   }
 
+  get info() {
+    return itemTypes[this.itemType];
+  }
+
   init() {
-    let info = itemTypes[this.itemType];
-    this.getComponent(Sprite).tex = info.tex;
-    this.transform.size.from(nde.tex[info.tex].size).mul(1/20);
+    this.getComponent(Sprite).tex = this.info.tex;
+    this.transform.size.from(nde.tex[this.info.tex].size).mul(1/20 * this.info.scale);
   }
 
   start() {
-    this.info = itemTypes[this.itemType];    
-
     this.ob.item = this;
 
     this.tracker = new Tracker({active: false});
@@ -44,6 +44,7 @@ class Item extends Component {
       this.held = false;
       this.ob.visible = true;
       interactable.active = true; 
+      interactable.text = this.itemType + ((this.amount != 1) ? ` (${this.amount})` : "");
     });
 
     if(this.held) {
@@ -55,19 +56,29 @@ class Item extends Component {
     }
 
     this.ob.name = this.itemType;
-    interactable.text = this.itemType;
+    interactable.text = this.itemType + ((this.amount != 1) ? ` (${this.amount})` : "");
   }
 
   split(amount) {
     amount = Math.min(amount, this.amount);
 
-    this.amount -= amount;
-
     let ob = this.ob.copy(true);
     let item = ob.getComponent(Item);
     item.amount = amount;
 
+    this.sendAmount(this.amount - amount);
     return createEntity(ob, itemHolder);
+  }
+  merge(ob, amount = Infinity) {
+    let item = ob?.getComponent(Item);
+    if (!ob || !item || ob.name != this.ob.name) return ob;
+
+    amount = Math.min(item.amount, amount, Math.max(this.info.stackSize - this.amount, 0));
+
+    this.sendAmount(this.amount + amount);
+    item.sendAmount(item.amount - amount);
+
+    if (item.amount > 0) return ob;
   }
   
 
@@ -79,6 +90,14 @@ class Item extends Component {
     this.tracker.snap();
     sendFire(this.ob, "drop");
   }
+  sendAmount(amount) {
+    if (amount <= 0) {
+      this.amount = amount;
+      removeEntity(this.ob);
+      return;
+    }
+    sendSet(this.ob, "item.amount", amount);
+  }
 
 
   render() {
@@ -87,6 +106,7 @@ class Item extends Component {
 
     if (ar <= 1) size = new Vec(itemUISize, itemUISize*ar);
     else size = new Vec(itemUISize/ar, itemUISize);
+    size.mul(this.info.scale);
 
     renderer._(() => {
       renderer.translate(new Vec(itemUISize * 0.5, itemUISize * 0.5));
