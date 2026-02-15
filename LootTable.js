@@ -8,13 +8,31 @@ class LootTable {
     }
   }
 
-  addElem(item, weight = 1) {
-    if (item.weight) {
-      weight = item.weight;
-      item = item.item;
+  addElem(e) {
+    let ob;
+    let weight = 1;
+    let min;
+    let max;
+
+    if (e instanceof Ob) {
+      ob = e;
+    } else if (typeof e == "string") {
+      ob = createItem(e);
+    } else if (Array.isArray(e)) {
+      if (e[0] instanceof Ob) ob = e[0];
+      else if (typeof e[0] == "string") ob = createItem(e[0]);
+      
+      if (e[1] != undefined) weight = e[1];
+      min = e[2];
+      max = e[3];
+    } else {
+      ob = e.ob;
+      if (e.weight != undefined) weight = e.weight;
+      min = e.min;
+      max = e.max;
     }
 
-    this.elems.push({item, weight});
+    this.elems.push({ob, weight, min, max});
     this.totalWeight += weight;
   }
 
@@ -29,8 +47,9 @@ class LootTable {
 
       if (tot < r) continue;
       
-      let item = elem.item.copy();
+      let item = elem.ob.copy();
       item.randomizeId();
+      if (elem.min != undefined) item.getComponent(Item).amount = elem.min + Math.floor(Math.random() * (elem.max-elem.min));
       return item;
     }
 

@@ -4,26 +4,27 @@ let url = "";
 
 let client;
 let server = undefined;
+let serverId;
 
 
-let peer = new Peer("pre-" + Math.floor(Math.random() * 100000), {debug: 1});
+let peer = new Peer("pre-" + Math.floor(Math.random() * 100000), {debug:1});
 
 
 function initClient() {
-  let id = document.location.search.split("?id=")[1];
+  serverId = document.location.search.split("?id=")[1];
 
-  if (id == "host") {
+  if (serverId == "host") {
     client = new ClientHost();
     server = new Server();
-    return id;
+    return;
   }
 
-  if (id == "editor") {
-    return id;
+  if (serverId == "editor") {
+    return;
   }
 
-  if (id) {
-    client = new Client(id);
+  if (serverId) {
+    client = new Client(serverId);
   } 
 
   if (settings.autoConnect) {
@@ -33,8 +34,8 @@ function initClient() {
   setInterval(() => {
     if (settings.autoConnect) checkDevServer();
   }, 1000);
-
-  return id;
+  
+  return;
 }
 function connectToServer(id) {  
   let split = id.split("=");
@@ -109,6 +110,13 @@ class ClientBase extends NetworkingBase {
         this.fire(...r);
       }
     });
+    this.on("kick", msg => {
+      serverId = undefined;
+
+      this.host.close();
+
+      alert(msg);
+    });
     this.on("alert", msg => {
       alert(msg);
     });
@@ -168,10 +176,10 @@ class Client extends ClientBase {
     })
   }
 
-  connect() {    
+  connect() {        
     this.host = peer.connect(this.serverId, {metadata: "" + this.id});
     
-    this.host.on("open", () => {           
+    this.host.on("open", () => {      
       this.host.on("data", data => {
         
         this.handleRequest(data);
@@ -231,16 +239,22 @@ class ServerBase extends NetworkingBase {
     setDevServer(this.id);
 
     peer.on("connection", conn => {      
+      let id = conn.metadata;
+
       if (Object.keys(this.connections).length + 1 >= maxPlayers) {
         conn.on("open", () => {
-          conn.send(JSON.stringify(["alert", ["Server full, try reloading or another server"]]));       
+          conn.send(JSON.stringify(["kick", ["Server full, try reloading or another server"]]));       
+        }); 
+        return;
+      }
+      if (this.connections[id]) {
+        conn.on("open", () => {
+          conn.send(JSON.stringify(["kick", ["Server already contains your ID"]]));       
         }); 
         return;
       }
 
-      let id = conn.metadata;
       console.log(id + ": " + "connected");
-
       this.connections[id] = conn;
       
       if (conn.open) {
@@ -249,6 +263,14 @@ class ServerBase extends NetworkingBase {
         conn.on("open", () => {
           this.fire("connection", id, conn);
         })
+      }
+
+      conn.peerConnection.onconnectionstatechange = (e) => {
+        if (conn.peerConnection.connectionState == "disconnected") {
+          delete this.connections[id];
+          this.fire("disconnection", id, conn);
+          console.log(id + ": " + "disconnected");
+        }
       }
 
       conn.on("close", () => {

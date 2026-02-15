@@ -43,6 +43,8 @@ class Inventory extends Component {
 
     this.on("setSlot", (i, id) => {
       this.slots[i] = id || undefined;
+
+      this.getSlot(i)?.setParent(this.ob);
     });
     
   }

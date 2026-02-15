@@ -2,7 +2,7 @@ let lights = [];
 
 class Light extends Component {
   constructor(props = {}) {
-    super();
+    super(props);
 
     this.maxR = props.maxR || 2;
     this.tex = props.tex || "light/1";

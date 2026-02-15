@@ -102,15 +102,29 @@ class SceneGame extends Scene {
       let e = cloneData(entity);
       e.stripClientComponents();
       idLookup[parentId].appendChild(e);
-      idLookup[e.id] = e;      
+
+      let table = e.createLookupTable();
+      for (let id in table) {
+        idLookup[id] = table[id];
+      }  
 
       if (e.id == client.id) this.setPlayer(e);
 
       e.update(1/60);
     });
     client.on("removeEntity", (entityId) => {
+      let table = idLookup[entityId].createLookupTable();
       idLookup[entityId]?.remove();
-      delete idLookup[entityId];
+
+      for (let id in table) {
+        delete idLookup[id];
+      }  
+    });
+    client.on("moveChildren", (_ob, _target) => {
+      let ob = idLookup[_ob];
+      let target = idLookup[_target];
+
+      while (ob.children.length > 0) ob.children[0].setParent(target);
     });
     client.on("setParent", (entityId, parentId) => {
       let e = idLookup[entityId];
@@ -155,7 +169,7 @@ class SceneGame extends Scene {
 
     //Position entity smoothly
     client.on("p", (entityId, pos, dir) => {                 
-      let e = idLookup[entityId];
+      let e = idLookup[entityId];      
 
       let diffPos = new Vec().from(pos).subV(e.transform.pos).mul(1000/updateInterval);
       let diffDir = getDeltaAngle(e.transform.dir, dir) * 1000 / updateInterval;
@@ -236,6 +250,8 @@ class SceneGame extends Scene {
     this.player.addComponent(
       new PlayerInput(),
       new Tracker(),
+      new WeaponUser(),
+      new Light({maxR: 2, brightness: 0.5, tex: "light/1", clientOnly: true}),
     );
     this.playerInput = this.player.getComponent(PlayerInput);
 
@@ -302,7 +318,7 @@ class SceneGame extends Scene {
       this.uiChatBox.setFocus(true);
     }
     
-    if (nde.getKeyEqual(key, "Inventory")) {
+    if (nde.getKeyEqual(key, "Inventory") && !this.deathTimer) {
       if (this.openInventories.length != 0) {
         this.closeInventory();
       } else {
@@ -331,6 +347,8 @@ class SceneGame extends Scene {
         i--;
       } 
     }
+
+    nde.debugStats.idLookup = Object.keys(idLookup).length;
   }
 
   render() {
@@ -445,6 +463,10 @@ function removeEntity(entity) {
   client.fire("removeEntity", entity.id);
   client.send("removeEntity", entity.id);
 }
+function moveChildren(ob, target) {
+  client.fire("moveChildren", ob.id, target.id);
+  client.send("moveChildren", ob.id, target.id);
+}
 function setActive(entity, active) {
   entity.active = active;
   
@@ -472,8 +494,7 @@ function changeHp(entity, hp) {
   client.send("changeHp", entity.id, hp);
 }
 function kill(entity) {
-  let inventory = entity.getComponent(Inventory).copy();
-  inventory.clientOnly = false;
+  let inventory = entity.getComponent(Inventory);
   inventory.startIndex = 0;
   inventory.stopIndex = 1000;
 
@@ -492,10 +513,12 @@ function kill(entity) {
         client.send("respawn");
       }
     });
+    scenes.game.closeInventory();
   }
 
-  removeEntity(entity);
   createEntity(ob, itemHolder);
+  moveChildren(entity, ob);
+  removeEntity(entity);
 }
 function checkDead(entity) {
   if (entity.entity.hp <= 0) {

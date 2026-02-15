@@ -106,7 +106,10 @@ class UISlot extends UIBase {
       }       
       
       let left = other.pickup(this.inventory.getSlot(this.i), start, stop)
-      if (!left) this.inventory.setSlot(undefined, this.i);
+      if (!left) {
+        this.inventory.setSlot(undefined, this.i);
+        closeTooltip();
+      }
       
       return;
     }
@@ -353,6 +356,7 @@ function openInventory(inventory, style = {}) {
 
 function closeInventory(inventory) {
   let index = uiInventoryHolder.children.indexOf(inventory);
+  if (index == -1) return;
   uiInventoryHolder.children.splice(index, 1);
 
   closeTooltip();

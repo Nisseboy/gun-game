@@ -38,13 +38,14 @@ class Item extends Component {
     this.on("pickup", () => {      
       this.held = true;
       this.ob.visible = false;
-      interactable.active = false;     
+      interactable.active = false;           
     });
     this.on("drop", () => {
       this.held = false;
       this.ob.visible = true;
       interactable.active = true; 
       interactable.text = this.itemType + ((this.amount != 1) ? ` (${this.amount})` : "");
+      this.ob.setParent(itemHolder);
     });
 
     if(this.held) {

@@ -12,18 +12,12 @@ class PlayerInput extends Component {
 
   start() {
     this.duck = this.getComponent(Duck);
-
-    this.weaponUser = new WeaponUser();
-    this.addComponent(this.weaponUser);
-
-    this.light = new Light({maxR: 2, brightness: 0.5, tex: "light/1"});
-    this.light.clientOnly = true;
-    this.addComponent(this.light);
-    
+    this.weaponUser = this.getComponent(WeaponUser);
+    this.light = this.getComponent(Light);
     this.inventory = this.getComponent(Inventory);
     
-
-    return;
+return
+    if (this.inventory.slots[0]) return;
     let items = [];
     for (let slotIndex in this.inventory.slots) {      
       let ob = lootTables["all"].pick();

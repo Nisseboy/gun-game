@@ -2,8 +2,6 @@ updateInterval = 1000/10;
 maxPlayers = 12;
 url = "https://nisseboy.github.io/gun-game";
 
-let serverId;
-
 const ITEMHOLDERID = 1;
 const SKYID = 2;
 
@@ -25,7 +23,7 @@ class Server extends ServerBase {
       let w = world.copy();
       w.stripClientComponents();
       this.send(id, "world", w.serialize());      
-      this.sendAll("sendChat", undefined, id + " connected.");
+      this.sendAll("sendChat", undefined, id + " connected.");      
     });
     this.on("disconnection", (id, conn) => {
       world.getComponent(PlayerStore).store(idLookup[id]);

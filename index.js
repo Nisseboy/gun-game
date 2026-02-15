@@ -64,7 +64,7 @@ nde.on("afterSetup", () => {
   processGunSprites();
   processRooms();
 
-  serverId = initClient();
+  initClient();
   if (serverId) scenes.mainMenu.lobbyDisplay.text = serverId;
 
   nde.setScene(scenes.mainMenu);

@@ -219,6 +219,12 @@ let lootTables = {
     {item: createItem({itemType: "Sniper"}), weight: 1}, 
     {item: createItem({itemType: "Machine Gun"}), weight: 1}, 
   ]),
+
+  ammo: new LootTable([
+    ["Light Ammo", 1, 4,30],
+    ["Heavy Ammo", 1, 1,5],
+    ["Shotgun Shell", 1, 2,12],
+  ]),
 };
 
 lootTables["all"] = new LootTable(Object.keys(itemTypes).map(type=>createItem(type)));
