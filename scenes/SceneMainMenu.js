@@ -45,7 +45,9 @@ class SceneMainMenu extends Scene {
 
         events: {mousedown: [() => {
           if (server) {
-            navigator.clipboard.writeText(url + "?id=" + server.id);
+            if (navigator.clipboard) navigator.clipboard.writeText(window.location.origin + "?id=" + server.id);
+            else alert(window.location.origin + "?id=" + server.id);
+            
 
             return;
           }

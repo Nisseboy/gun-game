@@ -65,8 +65,8 @@ nde.on("afterSetup", () => {
   processRooms();
 
   initClient();
-  if (serverId) scenes.mainMenu.lobbyDisplay.text = serverId;
-
+  if (serverId) scenes.mainMenu.lobbyDisplay.text = (serverId == "host" ? peer.id : serverId);
+  
   nde.setScene(scenes.mainMenu);
 
   if (serverId == "editor") {

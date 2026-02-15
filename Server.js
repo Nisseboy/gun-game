@@ -1,6 +1,5 @@
 updateInterval = 1000/10;
 maxPlayers = 12;
-url = "https://nisseboy.github.io/gun-game";
 
 const ITEMHOLDERID = 1;
 const SKYID = 2;

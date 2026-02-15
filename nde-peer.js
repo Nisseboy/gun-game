@@ -1,6 +1,5 @@
 let updateInterval = 1000/10;
 let maxPlayers = 12;
-let url = "";
 
 let client;
 let server = undefined;
