@@ -68,10 +68,14 @@ class Server extends ServerBase {
 
     
     let itemHolder = w.findId(ITEMHOLDERID);
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 20; i++) {
       itemHolder.appendChild(createSpawner({
         pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
-        lootTable: "all",
+        lootTable: "guns",
+      }));
+      itemHolder.appendChild(createSpawner({
+        pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
+        lootTable: "ammo",
       }));
     }
 

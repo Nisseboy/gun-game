@@ -213,11 +213,11 @@ let EntityPlayer = new Ob({
 
 let lootTables = {
   guns: new LootTable([
-    {item: createItem({itemType: "Pistol"}), weight: 1}, 
-    {item: createItem({itemType: "Shotgun"}), weight: 1}, 
-    {item: createItem({itemType: "SMG"}), weight: 1}, 
-    {item: createItem({itemType: "Sniper"}), weight: 1}, 
-    {item: createItem({itemType: "Machine Gun"}), weight: 1}, 
+    {ob: createItem({itemType: "Pistol"}), weight: 1}, 
+    {ob: createItem({itemType: "Shotgun"}), weight: 1}, 
+    {ob: createItem({itemType: "SMG"}), weight: 1}, 
+    {ob: createItem({itemType: "Sniper"}), weight: 1}, 
+    {ob: createItem({itemType: "Machine Gun"}), weight: 1}, 
   ]),
 
   ammo: new LootTable([

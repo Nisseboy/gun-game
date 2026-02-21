@@ -112,8 +112,8 @@ class SceneGame extends Scene {
 
       e.update(1/60);
     });
-    client.on("removeEntity", (entityId) => {
-      let table = idLookup[entityId].createLookupTable();
+    client.on("removeEntity", (entityId) => {      
+      let table = (idLookup[entityId]?.createLookupTable()) || {};
       idLookup[entityId]?.remove();
 
       for (let id in table) {

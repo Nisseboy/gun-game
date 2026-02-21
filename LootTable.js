@@ -25,7 +25,7 @@ class LootTable {
       if (e[1] != undefined) weight = e[1];
       min = e[2];
       max = e[3];
-    } else {
+    } else {      
       ob = e.ob;
       if (e.weight != undefined) weight = e.weight;
       min = e.min;
