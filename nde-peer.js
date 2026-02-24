@@ -1,29 +1,26 @@
 let updateInterval = 1000/10;
 let maxPlayers = 12;
 
-let client;
+let client = undefined;
 let server = undefined;
-let serverId;
 
+let peerIdPrefix = "pre-";
+let peerId = Math.floor(Math.random() * 100000);
 
-let peer = new Peer("pre-" + Math.floor(Math.random() * 100000), {debug:1});
+let peer = new Peer(peerIdPrefix + peerId, {debug:1});
 
 
 function initClient() {
-  serverId = document.location.search.split("?id=")[1];
+  let search = document.location.search.split("?id=")[1];
 
-  if (serverId == "host") {
+  if (search == "host") {
     client = new ClientHost();
-    server = new Server();
+    server = new Server(peerId);
     return;
   }
 
-  if (serverId == "editor") {
-    return;
-  }
-
-  if (serverId) {
-    client = new Client(serverId);
+  if (search) {    
+    client = new Client(search);
   } 
 
   if (settings.autoConnect) {
@@ -32,7 +29,7 @@ function initClient() {
 
   setInterval(() => {
     if (settings.autoConnect) checkDevServer();
-  }, 1000);
+  }, 500);
   
   return;
 }
@@ -53,12 +50,10 @@ function getPeerId() {
   return id;
 }
 function checkDevServer() {
-  let id = localStorage.getItem("peerjs-dev");
-  if (!id || id == "undefined" || (client && id == client.serverId)) return;
+  let id = localStorage.getItem("peerjs-dev");  
+  if (!id || id == "undefined" || (client && id == client.hostId)) return;
   
-  setTimeout(()=>{
-    connectToServer(localStorage.getItem("peerjs-dev"));
-  }, 300);
+  connectToServer(localStorage.getItem("peerjs-dev"));
 }
 function setDevServer(id) {
   localStorage.setItem("peerjs-dev", id);
@@ -90,8 +85,6 @@ class ClientBase extends NetworkingBase {
   constructor() {
     super();
 
-    this.serverId = undefined;
-
     this.pending = [];
 
     setInterval(() => {
@@ -110,7 +103,7 @@ class ClientBase extends NetworkingBase {
       }
     });
     this.on("kick", msg => {
-      serverId = undefined;
+      client = undefined;
 
       this.host.close();
 
@@ -150,7 +143,6 @@ class ClientHost extends ClientBase {
   constructor() {
     super();
 
-    this.serverId = peer.id;
     this.id = 0;
 
     this.init();
@@ -165,7 +157,7 @@ class Client extends ClientBase {
   constructor(id) {
     super();
 
-    this.serverId = id;
+    this.hostId = id;
   
     this.id = getPeerId();
     
@@ -176,19 +168,22 @@ class Client extends ClientBase {
   }
 
   connect() {        
-    this.host = peer.connect(this.serverId, {metadata: "" + this.id});
+    this.host = peer.connect(peerIdPrefix + this.hostId, {metadata: "" + this.id});
     
     this.host.on("open", () => {      
       this.host.on("data", data => {
-        
         this.handleRequest(data);
       });
 
       this.init();
     });
+    peer.on("error", () => {      
+      client = undefined;
+      alert(this.id + " not found");
+    });
 
     this.host.on("close", () => {
-      connectToServer("");
+      if (!settings.autoConnect) connectToServer("");
     });
   }
 
@@ -204,8 +199,10 @@ class Client extends ClientBase {
 
 
 class ServerBase extends NetworkingBase {
-  constructor() {
+  constructor(id) {
     super();
+
+    this.id = id;
 
     this.connections = {};
     this.pending = {};
@@ -233,8 +230,7 @@ class ServerBase extends NetworkingBase {
     }, updateInterval);
   }
 
-  init() {
-    this.id = peer.id;
+  init() {    
     setDevServer(this.id);
 
     peer.on("connection", conn => {      
@@ -253,13 +249,15 @@ class ServerBase extends NetworkingBase {
         return;
       }
 
-      console.log(id + ": " + "connected");
-      this.connections[id] = conn;
       
       if (conn.open) {
+        console.log(id + ": " + "connected");
+        this.connections[id] = conn;
         this.fire("connection", id, conn);
       } else {
         conn.on("open", () => {
+          console.log(id + ": " + "connected");
+          this.connections[id] = conn;
           this.fire("connection", id, conn);
         })
       }

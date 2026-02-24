@@ -21,19 +21,23 @@ class SceneMainMenu extends Scene {
         style: {...buttonStyle,},
         textStyle: {...buttonStyle,
           text: {
-            fill: serverId ? "rgba(161, 247, 62, 1)" : "rgba(252, 54, 54, 1)",
+            fill: client ? "rgba(161, 247, 62, 1)" : "rgba(252, 54, 54, 1)",
           }
         },
         text: "Play",
 
         events: {mousedown: [() => {
-          if (serverId == "editor") {
-            nde.setScene(scenes.editor);
-            return;
-          }
-
           if (!client || !world) return;
           nde.transition = new TransitionNoise(scenes.game, new TimerTime(0.2), true, 160);
+        }]},
+      }),
+      new UIButtonText({
+        style: {...buttonStyle,},
+        textStyle: {...buttonStyle,},
+        text: "Editor",
+
+        events: {mousedown: [() => {
+          nde.setScene(scenes.editor);
         }]},
       }),
 
@@ -45,7 +49,7 @@ class SceneMainMenu extends Scene {
 
         events: {mousedown: [() => {
           if (server) {
-            if (navigator.clipboard) navigator.clipboard.writeText(window.location.origin + "?id=" + server.id);
+            if (navigator.clipboard) navigator.clipboard.writeText(window.location.origin + window.location.pathname + "?id=" + server.id);
             else alert(window.location.origin + "?id=" + server.id);
             
 

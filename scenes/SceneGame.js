@@ -170,6 +170,7 @@ class SceneGame extends Scene {
     //Position entity smoothly
     client.on("p", (entityId, pos, dir) => {                 
       let e = idLookup[entityId];      
+      if (!e) return;
 
       let diffPos = new Vec().from(pos).subV(e.transform.pos).mul(1000/updateInterval);
       let diffDir = getDeltaAngle(e.transform.dir, dir) * 1000 / updateInterval;

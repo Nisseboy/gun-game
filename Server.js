@@ -5,10 +5,6 @@ const ITEMHOLDERID = 1;
 const SKYID = 2;
 
 class Server extends ServerBase {
-  constructor() {
-    super();
-  }
-
   init() {
     super.init();
 

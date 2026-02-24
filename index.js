@@ -63,16 +63,16 @@ nde.on("afterSetup", () => {
 
   processGunSprites();
   processRooms();
-
+  
   initClient();
-  if (serverId) scenes.mainMenu.lobbyDisplay.text = (serverId == "host" ? peer.id : serverId);
+  if (server) scenes.mainMenu.lobbyDisplay.text = server.id;
+  else if (client) scenes.mainMenu.lobbyDisplay.text = client.hostId;
+  else {
+    //nde.setScene(scenes.editor);
+    //return;
+  }
   
   nde.setScene(scenes.mainMenu);
-
-  if (serverId == "editor") {
-    nde.setScene(scenes.editor);
-    return;
-  }
 
   if (client) {
     scenes.game.setupListeners();
