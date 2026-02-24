@@ -181,7 +181,7 @@ class Inventory extends Component {
 
   checkAllowedTags(item, slotIndex) {
     let tags = this.tags[slotIndex];
-    if (!tags) return true;
+    if (!tags || !item) return true;
 
     let splitSlot = tags.split(",");
     

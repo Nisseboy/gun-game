@@ -108,7 +108,16 @@ nde.on("resize", e => {
 
 nde.on("mousemove", tooltipMove);
 
-function getSlotDown() {
+function getSlotDown(key) {
+  if (key) {
+    if (nde.getKeyEqual(key, "Slot 1")) return 0;
+    if (nde.getKeyEqual(key, "Slot 2")) return 1;
+    if (nde.getKeyEqual(key, "Slot 3")) return 2;
+    if (nde.getKeyEqual(key, "Slot 4")) return 3;
+    if (nde.getKeyEqual(key, "Slot 5")) return 4;
+    return -1;
+  }
+
   if (nde.getKeyDown("Slot 1")) return 0;
   if (nde.getKeyDown("Slot 2")) return 1;
   if (nde.getKeyDown("Slot 3")) return 2;

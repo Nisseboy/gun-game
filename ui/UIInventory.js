@@ -81,8 +81,8 @@ class UISlot extends UIBase {
 
     this.interactable = true;
     
-    this.on("mousedown", (e)=>{this.mousedown(e)});
-    this.on("inputdown", (e)=>{this.inputdown(e)});
+    this.on("mousedown", (e)=>{return this.mousedown(e)});
+    this.on("inputdown", (e)=>{return this.inputdown(e)});
     
   }
 
@@ -145,6 +145,24 @@ class UISlot extends UIBase {
       }
 
       this.inventory.drop(this.i, amount);
+
+      return false;
+    }
+
+    let pressedSlot = getSlotDown(key);
+    if (pressedSlot != -1) {
+      let ob = this.inventory.getSlot(this.i);
+      let item = ob?.getComponent(Item);
+      let slotOb = this.inventory.getSlot(pressedSlot);
+      let slotItem = slotOb?.getComponent(Item);
+
+      if(!this.inventory.checkAllowedTags(item, pressedSlot) || !this.inventory.checkAllowedTags(slotItem, this.i)) return false;
+      
+      this.inventory.setSlot(ob, pressedSlot);
+      this.inventory.setSlot(slotOb, this.i);
+
+      closeTooltip();
+      tooltipMove();
 
       return false;
     }
