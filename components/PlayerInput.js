@@ -61,10 +61,9 @@ return
       if (this.closestInteractable) this.closestInteractable.interact(this.ob);      
       else scenes.game.closeInventory();
     }
-    if (nde.getKeyDown("Slot 1")) this.inventory.heldIndex = 0;
-    if (nde.getKeyDown("Slot 2")) this.inventory.heldIndex = 1;
-    if (nde.getKeyDown("Slot 3")) this.inventory.heldIndex = 2;
-    if (nde.getKeyDown("Slot 4")) this.inventory.heldIndex = 3;
+
+    let pressedSlot = getSlotDown();
+    if (pressedSlot != -1) this.inventory.heldIndex = pressedSlot;
     
     if (nde.scrolled) {
       this.inventory.scrollHeld(Math.sign(nde.scrolled));

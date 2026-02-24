@@ -102,14 +102,7 @@ class Inventory extends Component {
   }
 
   find(predicate = (ob) => false) {
-    if (typeof predicate == "string") predicate = (ob) => ob.name == predicate;
-
-    for (let i = 0; i < this.slots.length; i++) {
-      let ob = this.getSlot(i);
-      if (!ob || !predicate(ob)) continue;
-
-      return ob;
-    }
+    return this.getSlot(this.findIndex(predicate));
   }
   findIndex(predicate = (ob) => false) {
     if (typeof predicate == "string") predicate = (ob) => ob.name == predicate;

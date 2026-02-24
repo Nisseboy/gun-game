@@ -36,6 +36,7 @@ nde.controls = {
   "Slot 2": "2,\"",
   "Slot 3": "3,#",
   "Slot 4": "4,¤",
+  "Slot 5": "5,%",
 
   "Editor Place": "mouse0",
   "Editor Break": "mouse2",
@@ -106,6 +107,15 @@ nde.on("resize", e => {
 });
 
 nde.on("mousemove", tooltipMove);
+
+function getSlotDown() {
+  if (nde.getKeyDown("Slot 1")) return 0;
+  if (nde.getKeyDown("Slot 2")) return 1;
+  if (nde.getKeyDown("Slot 3")) return 2;
+  if (nde.getKeyDown("Slot 4")) return 3;
+  if (nde.getKeyDown("Slot 5")) return 4;
+  return -1;
+}
 
 let ping = 100;
 let lastPingTime = 0;

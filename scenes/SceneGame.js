@@ -141,12 +141,16 @@ class SceneGame extends Scene {
       entity.audioSource.play(audio);
     });
     client.on("shoot", (gunId, start, ends) => {
-      let gun = idLookup[gunId].gun;
+      let ob = idLookup[gunId];
+      let audioSource = ob.getComponent(AudioSource);
+      let gun = ob.getComponent(Gun);
+      let item = ob.getComponent(Item);
+
       start = new Vec().from(start);
 
       gun.ammo--;
       for (let end of ends) world.appendChild(new Ob({},[new BulletPath(start.copy(), new Vec().from(end), 0.02)]));
-      playAudio(nde.aud[gun.ob.item.info.gun.shootAud], start);
+      audioSource.play(nde.aud[item.info.gun.shootAud]);
     });
     client.on("changeHp", (entityId, hp) => {
       let entity = idLookup[entityId];
@@ -190,13 +194,19 @@ class SceneGame extends Scene {
         }
       });
     });
+    const parseProp = (e, step) => {
+      let split = step.split("!");
+      
+      if (split.length == 2) return e.getComponent(eval(split[1]));
+      else return e[step];
+    }
     //Set properties of entity
     client.on("set", ( entityId, path, value) => { 
       try {        
         let e = idLookup[entityId];
         let steps = path.split(".");
         for (let i = 0; i < steps.length - 1; i++) {
-          e = e[steps[i]];
+          e = parseProp(e, steps[i]);
         }
         
         if (value.type) 
@@ -211,7 +221,7 @@ class SceneGame extends Scene {
       let e = idLookup[entityId];
       let steps = path.split(".");
       for (let i = 0; i < steps.length - 1; i++) {
-        e = e[steps[i]];
+        e = parseProp(e, steps[i]);
       }
 
       args = args.map(e => {
@@ -409,8 +419,8 @@ class SceneGame extends Scene {
       renderer.set("fill", "rgba(255, 0, 0, 0.51)");
       renderer.rect(pos, new Vec(size.x * Math.max(this.player.entity.hp / 100, 0), size.y));
       renderer.set("fill", "rgba(255, 238, 0, 0.51)");
-      if (this.playerInput.weaponUser._gun?.reloadTimer)
-        renderer.rect(new Vec(pos.x, pos.y - 0.1 - size.y), new Vec(size.x * this.playerInput.weaponUser._gun.reloadTimer.progress, size.y));
+      if (reloadTimer)
+        renderer.rect(new Vec(pos.x, pos.y - 0.1 - size.y), new Vec(size.x * reloadTimer.progress, size.y));
 
 
 

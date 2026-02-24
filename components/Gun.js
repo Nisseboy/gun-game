@@ -9,14 +9,15 @@ let ammos = [
   {name: "Shotgun Shell", shotsFired: 5, pierces: 1},
 ];
 
+let shootTimer = undefined;
+let reloadTimer = undefined;
+let reloadingAmmo = undefined;
+
 class Gun extends Component {
   constructor(props = {}) {
     super();
 
     this.ammo = props.ammo;
-
-    this.shootTimer = undefined;
-    this.reloadTimer = undefined;
   }
 
   get tipPos() {
@@ -29,18 +30,14 @@ class Gun extends Component {
     
   }
 
-  start() {
-    this.ob.gun = this;
-  }
-
   shoot() {
     let info = this.getComponent(Item).info.gun;
 
-    if (this.shootTimer) return;
-    if (this.reloadTimer) {
+    if (shootTimer) return;
+    if (reloadTimer) {
       if (info.ammoType != AMMOTYPE.shotgun) return;
 
-      this.cancelReload();
+      cancelReload();
     }
 
     if (this.ammo <= 0) {
@@ -96,46 +93,55 @@ class Gun extends Component {
 
 
 
-    this.shootTimer = new TimerTime(info.cooldown, () => {
-      if (this.shootTimer.progress == 1) this.shootTimer = undefined;
+    shootTimer = new TimerTime(info.cooldown, () => {
+      if (shootTimer.progress == 1) shootTimer = undefined;
     });
   }
-  reload(instant = false) {
+  reload(inventory) {
     let info = this.ob.item.info.gun;
 
     if (this.ammo == info.maxAmmo) return;
+    if (reloadTimer || shootTimer) return;
 
-    if (instant) {
-      this.cancelReload();
-      sendSet(this.ob, "gun.ammo", info.maxAmmo);
-      return;
-    }
-
-    if (this.reloadTimer || this.shootTimer) return;
-    
     sendAudio(this.ob, "gun/reloadMagazineStart");
 
-    this.reloadTimer = new TimerTime(info.reloadTime, () => {
-      if (this.reloadTimer.progress == 1) {
+    reloadingAmmo = inventory.find((ob) => {return ob.item.info.ammo?.type == info.ammoType});
+    if (!reloadingAmmo) return;
+
+    reloadTimer = new TimerTime(info.reloadTime, () => {
+      if (reloadTimer.progress == 1) {
         if (info.ammoType == AMMOTYPE.shotgun) {
-          sendSet(this.ob, "gun.ammo", Math.min(this.ammo + 1, info.maxAmmo));
-          this.reloadTimer.reset();
+          let ammoItem = inventory.gather(reloadingAmmo, 1)?.getComponent(Item);
+          if (!ammoItem) {
+            cancelReload();
+            return;
+          }
+
+          this.setAmmo(this.ammo + 1);
           sendAudio(this.ob, info.reloadAud);
-          if (this.ammo != info.maxAmmo) return;
-        } else {
-          sendAudio(this.ob, info.reloadAud + "End");
+          reloadTimer.reset();
+
+          reloadingAmmo = inventory.find((ob) => {return ob.item.info.ammo?.type == info.ammoType});
+          if (this.ammo >= info.maxAmmo || !reloadingAmmo) cancelReload();
+          return;
+        } 
+
+        let missing = info.maxAmmo - this.ammo;
+        let ammoItem = inventory.gather(reloadingAmmo, missing)?.getComponent(Item);
+        if (!ammoItem) {
+          cancelReload();
+          return;
         }
 
-        this.cancelReload();
-        this.reload(true);
+        this.setAmmo(this.ammo + ammoItem.amount);
+        sendAudio(this.ob, info.reloadAud + "End");
+        cancelReload();
       }
     });
   }
-  cancelReload() {
-    if (!this.reloadTimer) return;
 
-    this.reloadTimer.stop();
-    this.reloadTimer = undefined;
+  setAmmo(ammo) {
+    sendSet(this.ob, "!Gun.ammo", ammo);
   }
 
 
@@ -146,12 +152,14 @@ class Gun extends Component {
 
     return this;
   }
-
-  strip() {
-    delete this.ob.gun;
-
-    super.strip();
-  }
 }
 
+
+function cancelReload() {
+  if (!reloadTimer) return;
+
+  reloadTimer.stop();
+  reloadTimer = undefined;
+  reloadingAmmo = undefined;
+}
 

@@ -20,7 +20,7 @@ class WeaponUser extends Component {
       setVisible(this.held, false);      
     }
     if (this._gun) {
-      this._gun.cancelReload();
+      cancelReload();
     }        
     
     this._held = value;
@@ -77,7 +77,7 @@ class WeaponUser extends Component {
   reload() {
     if (!this._gun) return;
 
-    this._gun.reload(false);
+    this._gun.reload(this.getComponent(Inventory));
   }
   shoot() {
     if (!this._gun) return;
