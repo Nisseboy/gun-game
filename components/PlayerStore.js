@@ -20,7 +20,7 @@ class PlayerStore extends Component {
     }
 
     let player = EntityPlayer.copy();
-    player.name += " " + id;
+    player.name = id;
     player.id = id;
     player.transform.pos.set(2.5, 2.5);
 

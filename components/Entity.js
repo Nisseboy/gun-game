@@ -5,6 +5,7 @@ class Entity extends Component {
     super();
 
     this.hp = props.hp || 100;
+    this.nametag = props.nametag || false;
   }
 
   start() {
@@ -12,6 +13,14 @@ class Entity extends Component {
 
     this.ob.entity = this;
   }
+
+  render() {    
+    if (this.ob.id == client.id) return;
+    renderer.set("font", "0.2px monospace");
+    renderer.set("textAlign", [1, 2]);
+    renderer.text(this.ob.name, new Vec(this.transform.pos.x, this.transform.pos.y - this.transform.size.y * 0.5));
+  }
+
   remove() {
     let index = entities.indexOf(this);
     if (index == -1) return;
@@ -23,6 +32,7 @@ class Entity extends Component {
     super.from(data);
 
     this.hp = data.hp;
+    this.nametag = data.nametag;
     
     return this;
   }

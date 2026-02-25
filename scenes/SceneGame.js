@@ -462,7 +462,7 @@ function sendCall(entity, path, ...args) {
 }
 function sendFire(entity, eventName, ...args) {
   client.fire("fire", entity.id, eventName, ...args);
-  client.send("fire", entity.id, eventName, ...args);
+  client.send("fire", entity.id, eventName, ...args);  
 }
 function createEntity(entity, parent) {
   client.fire("createEntity", entity.serialize(), parent.id);

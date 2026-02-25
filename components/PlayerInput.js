@@ -16,23 +16,17 @@ class PlayerInput extends Component {
     this.light = this.getComponent(Light);
     this.inventory = this.getComponent(Inventory);
     
-return
+    
+    return;
     if (this.inventory.slots[0]) return;
-    let items = [];
     for (let slotIndex in this.inventory.slots) {      
       let ob = lootTables["all"].pick();
       let item = ob.getComponent(Item);
       item.amount = Math.ceil(Math.random() * item.info.stackSize);
       ob = createEntity(ob, itemHolder);
 
-      items.push(ob);
+      this.inventory.pickup(ob);
     }
-
-    setTimeout(() => {
-      for (let ob of items) {      
-        this.inventory.pickup(ob);
-      }
-    }, 100);
   }
   
   update(dt) {    

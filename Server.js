@@ -76,9 +76,10 @@ class Server extends ServerBase {
     }
 
 
-    let chest = createContainer({size: 10});
+    let chest = createContainer({size: 5, tex: "box/ammo", scale: 0.6});
+    chest.addComponent(new Spawner({lootTable: "ammo", amount: 5}));
     chest.transform.pos.set(3, 3);
-    w.appendChild(chest);
+    w.appendChild(chest);    
 
     let player0 = w.getComponent(PlayerStore).get(0);
     w.appendChild(player0);

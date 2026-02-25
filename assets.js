@@ -31,6 +31,7 @@ let assetPaths = [
   {"path":"ground/grass.png"},
   {"path":"pumpkin.png"},
   {"path":"ammo/light,heavy,shotgun.png"},
-  {"path":"inventory/weapon.png"}
+  {"path":"inventory/weapon.png"},
+  {"path":"box/ammo.png"}
 ];
 let scenePaths = ["SceneEditor","SceneGame","SceneMainMenu","SceneSettings"];

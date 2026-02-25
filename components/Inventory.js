@@ -63,7 +63,7 @@ class Inventory extends Component {
     }
 
     for (let i = startIndex; i < stopIndex; i++) {
-      let res = this.putInSlot(ob, i)
+      let res = this.putInSlot(ob, i);
       if (!res) return;
     }
     return ob;
@@ -152,6 +152,8 @@ class Inventory extends Component {
       let transform = ob.getComponent(Transform);
       transform.pos.from(this.transform.pos).addV(new Vec(Math.random(), Math.random()).sub(0.5).mul(2));
       transform.dir = Math.random() * Math.PI * 2;
+      let tracker = ob.getComponent(Tracker);
+      if (tracker) tracker.snap();      
     } 
 
     return ob;

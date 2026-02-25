@@ -18,7 +18,8 @@ class Item extends Component {
 
   init() {
     this.getComponent(Sprite).tex = this.info.tex;
-    this.transform.size.from(nde.tex[this.info.tex].size).mul(1/20 * this.info.scale);
+
+    pixelScale(this.ob, this.info.scale);
   }
 
   start() {

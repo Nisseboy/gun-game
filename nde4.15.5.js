@@ -825,7 +825,7 @@ class EventHandler {
     }
     
     for (let i = 0; i < this.listeners.length; i++) {
-      this.listeners[i].fire(eventName, ...args);
+      if (this.listeners[i].fire(eventName, ...args) == false) return false;
     }
       
     return true;
@@ -1145,8 +1145,10 @@ class Img extends Renderable {
         this.ctx.lineWidth = value;
         break;
       case "textAlign":
-        this.ctx.textAlign = value[0];
-        this.ctx.textBaseline = value[1];
+        if (typeof value[0] == "string") this.ctx.textAlign = value[0];
+        else this.ctx.textAlign = ["left", "center", "right"][value[0]];
+        if (typeof value[1] == "string") this.ctx.textBaseline = value[1];
+        else this.ctx.textBaseline = ["top", "middle", "bottom"][value[1]];
         break;
       case "font":
         this.ctx.font = value;
@@ -3993,12 +3995,12 @@ class Component extends Serializable {
   fire(...args) {return this.ob.fire(...args)}
 
   getComponent(...args) {return this.ob.getComponent(...args); }
-  getComponents(...args) {return this.ob.getComponent(...args); }
-  find(...args) {return this.ob.getComponent(...args); }
-  findAll(...args) {return this.ob.getComponent(...args); }
-  findId(...args) {return this.ob.getComponent(...args); }
+  getComponents(...args) {return this.ob.getComponents(...args); }
+  find(...args) {return this.ob.find(...args); }
+  findAll(...args) {return this.ob.findAll(...args); }
+  findId(...args) {return this.ob.findId(...args); }
   addComponent(...args) {return this.ob.addComponent(...args); }
-  removeComponent(...args) {return this.ob.addComponent(...args); }
+  removeComponent(...args) {return this.ob.removeComponent(...args); }
 
   from(data) {
     super.from(data);
@@ -4396,6 +4398,8 @@ class Ob extends Serializable {
   removeComponent(component) {
     let index = this.components.indexOf(component);
     if (index == -1) return false;
+
+    if (component.lastActive) component.disable();
 
     this.components.splice(index, 1);
     component.ob = undefined;

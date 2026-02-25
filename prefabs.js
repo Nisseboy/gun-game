@@ -179,10 +179,12 @@ function createContainer(props = {}) {
   let ob = new Ob({
     name: props.name || "Chest",
   }, [
-    new Sprite("duck/1"),
+    new Sprite(props.tex || "duck/1"),
     new Interactable(),
     new Inventory(props),
   ]);
+
+  pixelScale(ob, props.scale);
 
   return ob;
 }
@@ -200,7 +202,7 @@ let EntityPlayer = new Ob({
   name: "Duck",
 }, [
   new Sprite("duck/1"),
-  new Entity({health: 100}),
+  new Entity({health: 100, nametag: true}),
   new Duck(),
   new AudioSource(),
   EntityPlayerInventory,

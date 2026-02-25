@@ -126,6 +126,10 @@ function getSlotDown(key) {
   return -1;
 }
 
+function pixelScale(ob, scale = 1) {
+  ob.transform.size.from(nde.tex[ob.getComponent(Sprite).tex].size).mul(1/20 * scale);
+}
+
 let ping = 100;
 let lastPingTime = 0;
 function sendPing() {
