@@ -1,9 +1,10 @@
 let updateInterval = 1000/10;
 let maxPlayers = 12;
 
-let client = undefined;
 let server = undefined;
 let serverId = document.location.search.split("?id=")[1];
+let client = undefined;
+let id = getClientId();
 
 let peerIdPrefix = "pre-";
 let peerId = Math.floor(Math.random() * 100000);
@@ -12,16 +13,17 @@ let peer = new Peer(peerIdPrefix + peerId, {debug:1});
 
 
 function initClient() {
-  if (serverId[0] == "_") {
-    if (serverId == "_host") {
-      client = new ClientHost();
-      server = new Server(peerId);
+  if (serverId) {    
+    if (serverId[0] == "_") {
+      if (serverId == "_host") {
+        client = new ClientHost();
+        server = new Server(peerId);
+        id = 0;
+      }
+
+      return;
     }
 
-    return;
-  }
-
-  if (serverId) {    
     client = new Client(serverId);
   } 
 
@@ -44,11 +46,11 @@ function connectToServer(id) {
 
 
 
-function getPeerId() {
-  let id = localStorage.getItem("peer-id");
+function getClientId() {
+  let id = localStorage.getItem("client-id");
   if (id) return parseInt(id);
   id = Math.floor(Math.random() * 1000000);
-  localStorage.setItem("peer-id", id);
+  localStorage.setItem("client-id", id);
   return id;
 }
 function checkDevServer() {
@@ -145,13 +147,11 @@ class ClientHost extends ClientBase {
   constructor() {
     super();
 
-    this.id = 0;
-
     this.init();
   }
 
   send(channel, ...data) {
-    server.handleRequest(this.id, channel, ...data);
+    server.handleRequest(0, channel, ...data);
   }
 }
 
@@ -160,8 +160,6 @@ class Client extends ClientBase {
     super();
 
     this.hostId = id;
-  
-    this.id = getPeerId();
     
     if (peer.open) this.connect();
     peer.on("open", () => {
@@ -170,7 +168,7 @@ class Client extends ClientBase {
   }
 
   connect() {        
-    this.host = peer.connect(peerIdPrefix + this.hostId, {metadata: "" + this.id});
+    this.host = peer.connect(peerIdPrefix + this.hostId, {metadata: "" + id});
     
     this.host.on("open", () => {      
       this.host.on("data", data => {

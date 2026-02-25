@@ -15,7 +15,7 @@ class Entity extends Component {
   }
 
   render() {    
-    if (this.ob.id == client.id) return;
+    if (this.ob.id == id) return;
     renderer.set("font", "0.2px monospace");
     renderer.set("textAlign", [1, 2]);
     renderer.text(this.ob.name, new Vec(this.transform.pos.x, this.transform.pos.y - this.transform.size.y * 0.5));

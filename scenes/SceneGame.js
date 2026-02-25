@@ -108,7 +108,7 @@ class SceneGame extends Scene {
         idLookup[id] = table[id];
       }  
 
-      if (e.id == client.id) this.setPlayer(e);
+      if (e.id == id) this.setPlayer(e);
 
       e.update(1/60);
     });
@@ -158,7 +158,7 @@ class SceneGame extends Scene {
       entity.entity.hp += hp;
       
 
-      if (entityId == client.id) checkDead(entity);
+      if (entityId == id) checkDead(entity);
     });
     client.on("kill", (entityId) => {
       
@@ -244,12 +244,12 @@ class SceneGame extends Scene {
   }
   loadWorld(w) {        
     world = w;
-    if (client.id != 0) world.stripClientComponents();
+    if (id != 0) world.stripClientComponents();
 
     idLookup = world.createLookupTable();
     itemHolder = world.findId(ITEMHOLDERID);
 
-    this.setPlayer(idLookup[client.id]);
+    this.setPlayer(idLookup[id]);
     
     world.findId(SKYID).addComponent(new SkyLight());
 
