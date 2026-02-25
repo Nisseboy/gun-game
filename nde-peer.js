@@ -3,6 +3,7 @@ let maxPlayers = 12;
 
 let client = undefined;
 let server = undefined;
+let serverId = document.location.search.split("?id=")[1];
 
 let peerIdPrefix = "pre-";
 let peerId = Math.floor(Math.random() * 100000);
@@ -11,16 +12,17 @@ let peer = new Peer(peerIdPrefix + peerId, {debug:1});
 
 
 function initClient() {
-  let search = document.location.search.split("?id=")[1];
+  if (serverId[0] == "_") {
+    if (serverId == "_host") {
+      client = new ClientHost();
+      server = new Server(peerId);
+    }
 
-  if (search == "host") {
-    client = new ClientHost();
-    server = new Server(peerId);
     return;
   }
 
-  if (search) {    
-    client = new Client(search);
+  if (serverId) {    
+    client = new Client(serverId);
   } 
 
   if (settings.autoConnect) {
@@ -179,7 +181,7 @@ class Client extends ClientBase {
     });
     peer.on("error", () => {      
       client = undefined;
-      alert(this.id + " not found");
+      alert(this.hostId + " not found");
     });
 
     this.host.on("close", () => {

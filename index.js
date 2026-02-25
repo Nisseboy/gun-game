@@ -66,11 +66,12 @@ nde.on("afterSetup", () => {
   processRooms();
   
   initClient();
-  if (server) scenes.mainMenu.lobbyDisplay.text = server.id;
-  else if (client) scenes.mainMenu.lobbyDisplay.text = client.hostId;
-  else {
-    //nde.setScene(scenes.editor);
-    //return;
+  scenes.mainMenu.lobbyDisplay.text = serverId;
+  if (server) scenes.mainMenu.lobbyDisplay.text = "Hosting: " + server.id;
+
+  if (serverId == "_editor") {
+    nde.setScene(scenes.editor);
+    return;
   }
   
   nde.setScene(scenes.mainMenu);

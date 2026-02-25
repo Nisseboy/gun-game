@@ -27,6 +27,8 @@ class SceneMainMenu extends Scene {
         text: "Play",
 
         events: {mousedown: [() => {
+          if (serverId == "_editor") nde.setScene(scenes.editor);
+
           if (!client || !world) return;
           nde.transition = new TransitionNoise(scenes.game, new TimerTime(0.2), true, 160);
         }]},
@@ -37,7 +39,8 @@ class SceneMainMenu extends Scene {
         text: "Editor",
 
         events: {mousedown: [() => {
-          nde.setScene(scenes.editor);
+          //nde.setScene(scenes.editor);
+          connectToServer("_editor");
         }]},
       }),
 
@@ -52,10 +55,9 @@ class SceneMainMenu extends Scene {
             if (navigator.clipboard) navigator.clipboard.writeText(window.location.origin + window.location.pathname + "?id=" + server.id);
             else alert(window.location.origin + "?id=" + server.id);
             
-
             return;
           }
-          connectToServer("host");
+          connectToServer("_host");
         }]},
       }),
       new UIButtonText({
