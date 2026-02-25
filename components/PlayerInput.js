@@ -17,9 +17,10 @@ class PlayerInput extends Component {
     this.inventory = this.getComponent(Inventory);
     
     
-    return;
+
+
     if (this.inventory.slots[0]) return;
-    for (let slotIndex in this.inventory.slots) {      
+    for (let i = 0; i < 15; i++) {      
       let ob = lootTables["all"].pick();
       let item = ob.getComponent(Item);
       item.amount = Math.ceil(Math.random() * item.info.stackSize);

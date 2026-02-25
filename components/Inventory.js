@@ -1,5 +1,6 @@
 let openInventories = [];
-let hotbarSize = 5;
+let hotbarSize = 6;
+let armorSlot = 5;
 
 class Inventory extends Component {
   constructor(props = {}) {

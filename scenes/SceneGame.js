@@ -156,8 +156,9 @@ class SceneGame extends Scene {
       let entity = idLookup[entityId];
 
       entity.entity.hp += hp;
-      
 
+      if (hp < 0) client.fire("sendChat", entityId, "*moan*");
+      
       if (entityId == id) checkDead(entity);
     });
     client.on("kill", (entityId) => {
@@ -165,10 +166,15 @@ class SceneGame extends Scene {
     });
     client.on("sendChat", (entityId, message) => {
       let entity = idLookup[entityId];
+
+      let italics = message[0] == "*" && message[message.length - 1] == "*";
       
-      this.uiChat.setValue(this.uiChat.value + `\n${entity?entity.name + ": ":""}${message}`);
-      this.uiChat.parent.positionChildren();      
-      this.shownChatMessages.push({time: 1.5, entity, message});
+      if (!italics) this.uiChat.setValue(this.uiChat.value + `\n${entity?entity.name + ": ":""}${message}`);
+      this.uiChat.parent.positionChildren();    
+      
+      let index = this.shownChatMessages.findIndex(e => e.entity == entity);
+      if (index != -1 && entity) this.shownChatMessages.splice(index, 1);
+      this.shownChatMessages.push({time: 1.5, entity, message, italics});
     });
 
     //Position entity smoothly
@@ -393,10 +399,12 @@ class SceneGame extends Scene {
 
       renderer.set("textAlign", ["center", "bottom"]);
       renderer.set("font", "0.3px monospace");
-      renderer.set("fill", "rgb(255, 255, 255)");
       for (let i = 0; i < this.shownChatMessages.length; i++) {
         let m = this.shownChatMessages[i];
         if (!m.entity) continue;
+
+        if (m.italics) renderer.set("fill", "rgba(184, 184, 184, 0.51)");
+        else renderer.set("fill", "rgb(255, 255, 255)");
         renderer.text(m.message, m.entity.transform.pos._subV(new Vec(0, 0.4)));
       }
     });

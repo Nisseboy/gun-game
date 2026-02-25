@@ -95,6 +95,17 @@ let itemTypes = {
       type: AMMOTYPE.shotgun,
     }
   },
+
+  "Light Armor": {
+    tex: "armor/light",
+    stackSize: 1,
+
+    armor: {
+      dr: 0.4,
+    },
+
+    scale: 0.8,
+  },
 };
 
 for (let i in itemTypes) {
@@ -130,6 +141,14 @@ for (let i in itemTypes) {
     if (a.type == undefined) a.type = AMMOTYPE.light;
 
     type.scale *= 0.5;
+  }
+
+  let ar = type.armor;
+  if (ar) {
+    if (ar.dr == undefined) ar.dr = 0.5;
+
+    if (type.tags.length != 0) type.tags += ",";
+    type.tags += "armor";
   }
 }
 function processGunSprites() {
@@ -191,13 +210,14 @@ function createContainer(props = {}) {
 
 
 let EntityPlayerInventory = new Inventory({size: hotbarSize * 3, w: hotbarSize, startIndex: hotbarSize});
-    EntityPlayerInventory.tags[0] = "weapon";
-    EntityPlayerInventory.tags[1] = "weapon";
-    EntityPlayerInventory.tags[2] = "!weapon";
-    EntityPlayerInventory.tags[3] = "!weapon";
-    EntityPlayerInventory.tags[4] = "!weapon";
-    EntityPlayerInventory.allowedHeldSlots = [0, 1, 2, 3, 4];
-    EntityPlayerInventory.heldIndex = 0; 
+  EntityPlayerInventory.tags[0] = "weapon";
+  EntityPlayerInventory.tags[1] = "weapon";
+  EntityPlayerInventory.tags[2] = "!weapon";
+  EntityPlayerInventory.tags[3] = "!weapon";
+  EntityPlayerInventory.tags[4] = "!weapon";
+  EntityPlayerInventory.tags[armorSlot] = "armor";
+  EntityPlayerInventory.allowedHeldSlots = [0, 1, 2, 3, 4];
+  EntityPlayerInventory.heldIndex = 0; 
 let EntityPlayer = new Ob({
   name: "Duck",
 }, [
