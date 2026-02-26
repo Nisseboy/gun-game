@@ -155,7 +155,7 @@ function processGunSprites() {
   for (let i in itemTypes) {
     let type = itemTypes[i];
     if (!type.gun) continue;
-
+    
     let texture = nde.tex[type.tex];        
 
     let p = texture.ctx.getImageData(0, 0, texture.size.x, texture.size.y).data;
@@ -169,6 +169,7 @@ function processGunSprites() {
         }
       }
     }
+    if (!type.gun.tipOffset) type.gun.tipOffset = new Vec(0.4, -0.1);
   }
 }
 

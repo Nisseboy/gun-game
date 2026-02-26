@@ -1,0 +1,2 @@
+All guns should have a designated tip position, color the pixel with (2, 0, 0, 255)
+Fingerprinting on some browsers breaks this

@@ -5181,7 +5181,7 @@ class NDE {
     
     let assetLoader = this.assetLoaders[fileType];
     if (!assetLoader) {
-      console.error("Unsupported filetype: " + assetDescriptor.path);
+      console.warn("Unsupported filetype: " + assetDescriptor.path);
       return;
     }
     assetDescriptor.path = assetFolder + "/" + assetDescriptor.path;

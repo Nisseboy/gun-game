@@ -1,0 +1,1 @@
+opacity should be 86 for tagged slot images, if a tag is weapon, weapon image will be used if available
