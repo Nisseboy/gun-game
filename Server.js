@@ -101,14 +101,12 @@ class Server extends ServerBase {
     
     let itemHolder = w.findId(ITEMHOLDERID);
     for (let i = 0; i < 20; i++) {
-      itemHolder.appendChild(createSpawner({
-        pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
-        lootTable: "guns",
-      }));
-      itemHolder.appendChild(createSpawner({
-        pos: new Vec(Math.random(), Math.random()).mulV(grid.size),
-        lootTable: "ammo",
-      }));
+      itemHolder.appendChild(new Ob({name: "Spawner", pos: new Vec(Math.random(), Math.random()).mulV(grid.size)}, [
+        new Spawner({lootTable: "guns"}),
+      ]));
+      itemHolder.appendChild(new Ob({name: "Spawner", pos: new Vec(Math.random(), Math.random()).mulV(grid.size)}, [
+        new Spawner({lootTable: "ammo"}),
+      ]));
     }
 
 

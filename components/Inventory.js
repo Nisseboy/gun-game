@@ -228,3 +228,19 @@ class Inventory extends Component {
     super.strip();
   }
 }
+
+
+
+function createContainer(props = {}) {
+  let ob = new Ob({
+    name: props.name || "Chest",
+  }, [
+    new Sprite(props.tex || "duck/1"),
+    new Interactable(),
+    new Inventory(props),
+  ]);
+
+  pixelScale(ob, props.scale);
+
+  return ob;
+}

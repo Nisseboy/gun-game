@@ -40,6 +40,7 @@ nde.controls = {
 
   "Editor Place": "mouse0",
   "Editor Break": "mouse2",
+  "Editor Snap Modifier": "Shift",
 
 
   "Pause": "Escape",
@@ -62,7 +63,7 @@ nde.on("afterSetup", () => {
     scenes[name] = new (eval(path))();
   }
 
-  processGunSprites();
+  processItems();
   processRooms();
   
   initClient();

@@ -1219,7 +1219,7 @@ class Img extends Renderable {
   }
   image(img, pos, size) {
     if (!img) {
-      console.error("No image supplied to renderer.image()");
+      return;
     }
 
     this.ctx.drawImage(img.getImg().canvas, pos.x, pos.y, size.x, size.y);

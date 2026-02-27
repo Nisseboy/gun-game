@@ -33,16 +33,6 @@ class SceneMainMenu extends Scene {
           nde.transition = new TransitionNoise(scenes.game, new TimerTime(0.2), true, 160);
         }]},
       }),
-      new UIButtonText({
-        style: {...buttonStyle,},
-        textStyle: {...buttonStyle,},
-        text: "Editor",
-
-        events: {mousedown: [() => {
-          //nde.setScene(scenes.editor);
-          connectToServer("_editor");
-        }]},
-      }),
 
 
       new UIButtonText({
@@ -85,7 +75,7 @@ class SceneMainMenu extends Scene {
         text: "Editor",
 
         events: {mousedown: [() => {
-          connectToServer("editor");
+          connectToServer("_editor");
         }]},
       }),
       new UIBase({

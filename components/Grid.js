@@ -1,5 +1,21 @@
 let allRooms = [];
 
+let noiseOverlay;
+function createNoiseOverlay() {
+  noiseOverlay = new Img(new Vec(432, 432 * (9/16)));
+  let imageData = noiseOverlay.ctx.getImageData(0, 0, noiseOverlay.size.x, noiseOverlay.size.y);
+  let pxls = imageData.data;
+  for (let i = 0; i < noiseOverlay.size.x * noiseOverlay.size.y * 4;) {
+    let c = Math.random() * 255;
+    pxls[i++] = c;
+    pxls[i++] = c;
+    pxls[i++] = c;
+    pxls[i++] = (Math.random() > 0.5) ? 10 : 0;
+  }
+  noiseOverlay.ctx.putImageData(imageData, 0, 0);
+}
+createNoiseOverlay();
+
 class Grid extends Component {
   constructor(props = {}) {
     super();
@@ -11,19 +27,6 @@ class Grid extends Component {
 
   start() {
     this.ob.grid = this;
-
-    
-    this.noiseImg = new Img(new Vec(432, 432 * nde.ar));
-    let imageData = this.noiseImg.ctx.getImageData(0, 0, this.noiseImg.size.x, this.noiseImg.size.y);
-    let pxls = imageData.data;
-    for (let i = 0; i < this.noiseImg.size.x * this.noiseImg.size.y * 4;) {
-      let c = Math.random() * 255;
-      pxls[i++] = c;
-      pxls[i++] = c;
-      pxls[i++] = c;
-      pxls[i++] = (Math.random() > 0.5) ? 10 : 0;
-    }
-    this.noiseImg.ctx.putImageData(imageData, 0, 0);
   }
 
   render() {
@@ -48,7 +51,7 @@ class Grid extends Component {
 
     renderer._(() => {
       let camSize = new Vec(cam.w, cam.w * cam.ar);
-      let noiseImg = this.noiseImg;
+      let noiseImg = noiseOverlay;
       let pos = cam.pos._divV(camSize).floor().mulV(camSize);
 
       renderer.translate(pos);

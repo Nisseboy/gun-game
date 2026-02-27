@@ -35,6 +35,7 @@ let assetPaths = [
   {"path":"armor/light.png"},
   {"path":"inventory/armor.png"},
   {"path":"gun/INFO.txt"},
-  {"path":"inventory/INFO.txt"}
+  {"path":"inventory/INFO.txt"},
+  {"path":"rooms/testRoom3.ob"}
 ];
 let scenePaths = ["SceneEditor","SceneGame","SceneMainMenu","SceneSettings"];

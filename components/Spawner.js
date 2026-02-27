@@ -30,6 +30,15 @@ class Spawner extends Component {
     else this.ob.remove();
   }
 
+
+  render() {
+    renderer._(() => {
+      renderer.set("font", "0.3px monospace");
+      renderer.set("textAlign", [1, 1]);
+      renderer.text(this.lootTable, this.transform.pos);
+    });
+  }
+
   from(data) {
     super.from(data);
 

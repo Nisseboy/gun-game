@@ -14,13 +14,10 @@ class LootTable {
     let min;
     let max;
 
-    if (e instanceof Ob) {
+    if (e instanceof Ob || typeof e == "string") {
       ob = e;
-    } else if (typeof e == "string") {
-      ob = createItem(e);
     } else if (Array.isArray(e)) {
-      if (e[0] instanceof Ob) ob = e[0];
-      else if (typeof e[0] == "string") ob = createItem(e[0]);
+      ob = e[0];
       
       if (e[1] != undefined) weight = e[1];
       min = e[2];
@@ -47,7 +44,9 @@ class LootTable {
 
       if (tot < r) continue;
       
-      let item = elem.ob.copy();
+      let ob = elem.ob;
+      if (typeof ob == "string") ob = createItem(ob);
+      let item = ob.copy();
       item.randomizeId();
       if (elem.min != undefined) item.getComponent(Item).amount = elem.min + Math.floor(Math.random() * (elem.max-elem.min));
       return item;

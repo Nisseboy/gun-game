@@ -108,106 +108,26 @@ let itemTypes = {
   },
 };
 
-for (let i in itemTypes) {
-  let type = itemTypes[i];
 
-  if (type.stackSize == undefined) type.stackSize = 1;
-  if (type.tags == undefined) type.tags = "";
-  if (type.tex == undefined) type.tex = "duck/1";
-  if (type.scale == undefined) type.scale = 1;
-  if (type.components == undefined) type.components = [];
 
-  let g = type.gun;
-  if (g) {
-    if (g.ammoType == undefined) g.ammoType = AMMOTYPE.light;
-    if (g.maxAmmo == undefined) g.maxAmmo = 12;
-    if (g.damage == undefined) g.damage = 20;
-    if (g.cooldown == undefined) g.cooldown = 0;
-    if (g.reloadTime == undefined) g.reloadTime = 1;
-    if (g.automatic == undefined) g.automatic = false;
-    if (g.spread == undefined) g.spread = 0;
-    if (g.laser == undefined) g.laser = false;
-    if (g.shootAud == undefined) g.shootAud = "gun/pistolShot";
-    if (g.reloadAud == undefined) g.reloadAud = "gun/reloadMagazine";
+let lootTables = {
+  guns: new LootTable([
+    {ob: "Pistol", weight: 1}, 
+    {ob: "Shotgun", weight: 1}, 
+    {ob: "SMG", weight: 1}, 
+    {ob: "Sniper", weight: 1}, 
+    {ob: "Machine Gun", weight: 1}, 
+  ]),
 
-    if (type.tags.length != 0) type.tags += ",";
-    type.tags += "weapon";
+  ammo: new LootTable([
+    ["Light Ammo", 1, 4,30],
+    ["Heavy Ammo", 1, 1,5],
+    ["Shotgun Shell", 1, 2,12],
+  ]),
+};
 
-    type.components.push(Gun);
-  }
 
-  let a = type.ammo;
-  if (a) {
-    if (a.type == undefined) a.type = AMMOTYPE.light;
 
-    type.scale *= 0.5;
-  }
-
-  let ar = type.armor;
-  if (ar) {
-    if (ar.dr == undefined) ar.dr = 0.5;
-
-    if (type.tags.length != 0) type.tags += ",";
-    type.tags += "armor";
-  }
-}
-function processGunSprites() {
-  for (let i in itemTypes) {
-    let type = itemTypes[i];
-    if (!type.gun) continue;
-    
-    let texture = nde.tex[type.tex];        
-
-    let p = texture.ctx.getImageData(0, 0, texture.size.x, texture.size.y).data;
-
-    for (let x = 0; x < texture.size.x; x++) {
-      for (let y = 0; y < texture.size.y; y++) {
-        let k = (x + y * texture.size.x) * 4;
-
-        if (p[k] == 2 && p[k+1] == 0 && p[k+2] == 0 && p[k+3] == 255) {
-          type.gun.tipOffset = new Vec(x, y).subV(texture.size._mul(0.5)).add(0.5).mul(1/20);
-        }
-      }
-    }
-    if (!type.gun.tipOffset) type.gun.tipOffset = new Vec(0.4, -0.1);
-  }
-}
-
-function createItem(props = {}) {
-  if (typeof props == "string") props = {itemType: props};
-
-  let ob = new Ob({}, [
-    new Sprite(),
-    new AudioSource(),
-    new Interactable(),
-    new Item(props),
-  ]);
-
-  let type = itemTypes[props.itemType];
-  for (let c of type.components) {
-    ob.addComponent(new c());
-  }
-
-  return ob;
-}
-function createSpawner(props = {}) {
-  return new Ob({name: "Spawner", pos: props.pos}, [
-    new Spawner(props),
-  ]);
-}
-function createContainer(props = {}) {
-  let ob = new Ob({
-    name: props.name || "Chest",
-  }, [
-    new Sprite(props.tex || "duck/1"),
-    new Interactable(),
-    new Inventory(props),
-  ]);
-
-  pixelScale(ob, props.scale);
-
-  return ob;
-}
 
 
 let EntityPlayerInventory = new Inventory({size: hotbarSize * 3, w: hotbarSize, startIndex: hotbarSize});
@@ -228,26 +148,3 @@ let EntityPlayer = new Ob({
   new AudioSource(),
   EntityPlayerInventory,
 ]);
-
-
-
-
-
-
-let lootTables = {
-  guns: new LootTable([
-    {ob: createItem({itemType: "Pistol"}), weight: 1}, 
-    {ob: createItem({itemType: "Shotgun"}), weight: 1}, 
-    {ob: createItem({itemType: "SMG"}), weight: 1}, 
-    {ob: createItem({itemType: "Sniper"}), weight: 1}, 
-    {ob: createItem({itemType: "Machine Gun"}), weight: 1}, 
-  ]),
-
-  ammo: new LootTable([
-    ["Light Ammo", 1, 4,30],
-    ["Heavy Ammo", 1, 1,5],
-    ["Shotgun Shell", 1, 2,12],
-  ]),
-};
-
-lootTables["all"] = new LootTable(Object.keys(itemTypes).map(type=>createItem(type)));
