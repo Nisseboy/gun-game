@@ -88,7 +88,7 @@ class Gun extends Component {
     }
     shoot(this, this.tipPos, endPoses);
     for (let id in hitPlayers) {
-      changeHp(idLookup[id], -hitPlayers[id]);
+      damage(idLookup[id], hitPlayers[id]);
     }
 
 

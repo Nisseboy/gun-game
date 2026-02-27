@@ -300,7 +300,7 @@ class ServerBase extends NetworkingBase {
       return;
     }
 
-    this.connections[id].send(JSON.stringify([channel, data]));
+    this.connections[id]?.send(JSON.stringify([channel, data]));
   }
   sendLater(id, channel, ...data) {
     if (!this.pending[id]) this.pending[id] = [];

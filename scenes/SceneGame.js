@@ -120,6 +120,14 @@ class SceneGame extends Scene {
         delete idLookup[id];
       }  
     });
+    client.on("changeId", (oldId, newId) => {      
+      let e = idLookup[oldId];
+      if (!e) return;
+
+      e.id = newId;
+      delete idLookup[oldId];
+      idLookup[newId] = e;      
+    });
     client.on("moveChildren", (_ob, _target) => {
       let ob = idLookup[_ob];
       let target = idLookup[_target];
@@ -153,16 +161,22 @@ class SceneGame extends Scene {
       audioSource.play(nde.aud[item.info.gun.shootAud]);
     });
     client.on("changeHp", (entityId, hp) => {
-      let entity = idLookup[entityId];
+      let e = idLookup[entityId];
+      if (!e) return;
 
-      entity.entity.hp += hp;
+      e.getComponent(Entity).hp += hp;
 
       if (hp < 0) client.fire("sendChat", entityId, "*moan*");
-      
-      if (entityId == id) checkDead(entity);
     });
-    client.on("kill", (entityId) => {
-      
+    client.on("startRespawnTimer", () => {
+      this.deathTimer = new TimerTime(5, () => {
+        if (this.deathTimer.progress == 1) {
+          delete this.deathTimer;
+
+          client.send("respawn");
+        }
+      });
+      this.closeInventory();
     });
     client.on("sendChat", (entityId, message) => {
       let entity = idLookup[entityId];
@@ -355,6 +369,7 @@ class SceneGame extends Scene {
     this.cam.pos.from(this.player.transform.pos);
     moveListener(this.cam.pos);
 
+    let chatShown = false;
     for (let i = 0; i < this.shownChatMessages.length; i++) {
       let m = this.shownChatMessages[i];
       m.time -= dt;
@@ -362,8 +377,9 @@ class SceneGame extends Scene {
       if (m.time <= 0) {
         this.shownChatMessages.splice(i, 1);
         i--;
-      } 
+      } else if (!m.italics) chatShown = true;
     }
+    this.uiChat.parent.style.render = (this.uiChatBox.focused || chatShown) ? "normal" : "hidden";
 
     nde.debugStats.idLookup = Object.keys(idLookup).length;
   }
@@ -425,7 +441,7 @@ class SceneGame extends Scene {
       renderer.set("stroke", "rgba(0, 0, 0, 0)");
       
       renderer.set("fill", "rgba(255, 0, 0, 0.51)");
-      renderer.rect(pos, new Vec(size.x * Math.max(this.player.entity.hp / 100, 0), size.y));
+      renderer.rect(pos, new Vec(size.x * Math.max(this.player.getComponent(Entity).hp / 100, 0), size.y));
       renderer.set("fill", "rgba(255, 238, 0, 0.51)");
       if (reloadTimer)
         renderer.rect(new Vec(pos.x, pos.y - 0.1 - size.y), new Vec(size.x * reloadTimer.progress, size.y));
@@ -439,15 +455,14 @@ class SceneGame extends Scene {
 
         renderer.set("fill", "rgba(255, 255, 255, 1)");
         renderer.set("font", "1px monospace");
-        renderer.set("textAlign", ["left", "middle"]);
-        renderer.text(`You are dead [${Math.ceil(5 - this.deathTimer.elapsedTime)}]`, new Vec(1, cam.w * cam.ar * 0.5));
+        renderer.set("textAlign", [1, 1]);
+        renderer.text(`You are dead [${Math.ceil(5 - this.deathTimer.elapsedTime)}]`, new Vec(cam.w * 0.5, cam.w * cam.ar * 0.5));
       }
     });
 
     uicam._(renderer, () => {
       if (cursorItem.ob) cursorItem.item.amount = cursorItem.amount;
 
-      this.uiChat.parent.style.render = (this.uiChatBox.focused || this.shownChatMessages.length > 0) ? "normal" : "hidden";
       this.ui.renderUI();
 
       if (cursorItem.ob) {
@@ -509,40 +524,10 @@ function shoot(gun, start, ends) {
   client.send("shoot", gun.ob.id, start, ends);
 }
 function changeHp(entity, hp) {
-  client.fire("changeHp", entity.id, hp);
   client.send("changeHp", entity.id, hp);
 }
-function kill(entity) {
-  let inventory = entity.getComponent(Inventory);
-  inventory.startIndex = 0;
-  inventory.stopIndex = 1000;
-
-  let ob = new Ob({name: "Dead " + entity.name}, [
-    entity.transform.copy(),
-    new Sprite("duck/dead"),
-    inventory,
-    new Interactable(),
-  ]);
-
-  if (entity == scenes.game.player) {
-    scenes.game.deathTimer = new TimerTime(5, () => {
-      if (scenes.game.deathTimer.progress == 1) {
-        delete scenes.game.deathTimer;
-
-        client.send("respawn");
-      }
-    });
-    scenes.game.closeInventory();
-  }
-
-  createEntity(ob, itemHolder);
-  moveChildren(entity, ob);
-  removeEntity(entity);
-}
-function checkDead(entity) {
-  if (entity.entity.hp <= 0) {
-    kill(entity);
-  }
+function damage(entity, dmg) {
+  client.send("damage", entity.id, dmg);
 }
 
 function sendChat(entity, message) {

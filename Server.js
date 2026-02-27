@@ -36,6 +36,42 @@ class Server extends ServerBase {
       this.sendAll("createEntity", world.getComponent(PlayerStore).get(id).serialize(), world.id);
     });
 
+    
+
+    this.on("damage", (id, entityId, dmg) => {
+      this.fire("changeHp", id, entityId, -dmg);
+    });
+    this.on("changeHp", (id, entityId, hp) => {
+      let entity = idLookup[entityId];
+      if (!entity) return;
+
+      if (entity.getComponent(Entity).hp + hp <= 0) {
+        let inventory = entity.getComponent(Inventory);
+        inventory.startIndex = 0;
+        inventory.stopIndex = 1000;
+
+        let ob = new Ob({name: "Dead " + entity.name}, [
+          entity.transform.copy(),
+          new Sprite("duck/dead"),
+          inventory,
+          new Interactable(),
+        ]);
+
+        this.sendAll("mult", [
+          ["createEntity", ob.serialize(), itemHolder.id],
+          ["moveChildren", entity.id, ob.id],
+          ["removeEntity", entity.id],
+          ["sendChat", entity.id, entity.name + " died."],
+        ]);
+
+        this.send(entityId, "startRespawnTimer");
+      } else {
+        this.sendAll("changeHp", entityId, hp);
+      }
+    })
+
+
+
 
     this.on("*", (eventName, senderId, ...args) => {
       this.sendOthers(senderId, eventName, ...args);

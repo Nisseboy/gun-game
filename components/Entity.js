@@ -10,8 +10,6 @@ class Entity extends Component {
 
   start() {
     entities.push(this);
-
-    this.ob.entity = this;
   }
 
   render() {    
@@ -35,12 +33,6 @@ class Entity extends Component {
     this.nametag = data.nametag;
     
     return this;
-  }
-
-  strip() {
-    delete this.ob.entity;
-
-    super.strip();
   }
 }
 
