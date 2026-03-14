@@ -179,7 +179,7 @@ class Inventory extends Component {
     if (slotOb.name != ob.name) return 0;
     
     let slotItem = slotOb.getComponent(Item);
-    return Math.min(slotItem.info.stackSize - slotItem.amount, item.amount);
+    return Math.min(slotItem.info.item.stackSize - slotItem.amount, item.amount);
   }
 
   checkAllowedTags(item, slotIndex) {
@@ -188,7 +188,7 @@ class Inventory extends Component {
 
     let splitSlot = tags.split(",");
     
-    let splitItem = item.info.tags.split(",");
+    let splitItem = item.info.item.tags.split(",");
     for (let i = 0; i < splitSlot.length; i++) {
       let tag = splitSlot[i];
       let splitTag = tag.split("!");

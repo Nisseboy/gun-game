@@ -270,8 +270,6 @@ class SceneGame extends Scene {
     itemHolder = world.findId(ITEMHOLDERID);
 
     this.setPlayer(idLookup[id]);
-    
-    world.findId(SKYID).addComponent(new SkyLight());
 
     this.update(1/60);
   }

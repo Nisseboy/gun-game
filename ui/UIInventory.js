@@ -185,7 +185,7 @@ class UISlot extends UIBase {
 
         let amount = this.pass.amount;
         if (item) {
-          amount -= Math.max(item.amount + amount - item.info.stackSize, 0);
+          amount -= Math.max(item.amount + amount - item.info.item.stackSize, 0);
         }
 
 
@@ -235,7 +235,7 @@ function inventoryDownFunc(e) {
   if (cursorItem.button) return;
 
   if (performance.now() - cursorItem.pickupTime <= 200 && nde.hoveredUIElement == cursorItem.startElem) {
-    cursorItem.item.merge(nde.hoveredUIElement.inventory.gather(cursorItem.ob, Math.max(cursorItem.item.info.stackSize - cursorItem.amount, 0)));
+    cursorItem.item.merge(nde.hoveredUIElement.inventory.gather(cursorItem.ob, Math.max(cursorItem.item.info.item.stackSize - cursorItem.amount, 0)));
     cursorItem.amount = cursorItem.item.amount;
     return;
   }
@@ -273,7 +273,7 @@ function inventoryMoveFunc(e) {
       item: cursorItem.item,
     };
     
-    if (item && item.amount >= item.info.stackSize) return;
+    if (item && item.amount >= item.info.item.stackSize) return;
     cursorItem.item.amount++;
     let possible = elem.inventory.checkPossible(cursorItem.ob, elem.i);
     cursorItem.item.amount--;

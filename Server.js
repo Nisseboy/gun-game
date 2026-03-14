@@ -93,7 +93,7 @@ class Server extends ServerBase {
       new PlayerStore(),
     ], [
       new Ob({name: "itemHolder", id: ITEMHOLDERID}),
-      new Ob({name: "sky", id: SKYID, pos: grid.size._mul(0.5)}),
+      new Ob({name: "sky", id: SKYID, pos: grid.size._mul(0.5)}, [new SkyLight()]),
     ]);
 
     grid.placeRoom(allRooms[1], new Vec(5, 5));
@@ -115,8 +115,14 @@ class Server extends ServerBase {
     chest.transform.pos.set(3, 3);
     w.appendChild(chest);    
 
+    /*
+    world = w;
+    console.log(scenes.editor.export());
+*/
     let player0 = w.getComponent(PlayerStore).get(0);
     w.appendChild(player0);
+    
+
     
     
     return w;

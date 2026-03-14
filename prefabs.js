@@ -1,4 +1,23 @@
-let itemTypes = {
+
+
+let lootTables = {
+  guns: new LootTable([
+    {ob: "Pistol", weight: 1}, 
+    {ob: "Shotgun", weight: 1}, 
+    {ob: "SMG", weight: 1}, 
+    {ob: "Sniper", weight: 1}, 
+    {ob: "Machine Gun", weight: 1}, 
+  ]),
+
+  ammo: new LootTable([
+    ["Light Ammo", 1, 4,30],
+    ["Heavy Ammo", 1, 1,5],
+    ["Shotgun Shell", 1, 2,12],
+  ]),
+};
+
+
+let prefabs = {
   "Pistol": {
     tex: "gun/pistol",
     gun: {
@@ -73,60 +92,43 @@ let itemTypes = {
 
   "Light Ammo": {
     tex: "ammo/light",
-    stackSize: 30,
 
-    ammo: {
-      type: AMMOTYPE.light,
-    }
+    item: {
+      tags: "ammo",
+      stackSize: 30,
+      ammoType: AMMOTYPE.light,
+    },
   },
   "Heavy Ammo": {
     tex: "ammo/heavy",
-    stackSize: 12,
 
-    ammo: {
-      type: AMMOTYPE.heavy,
-    }
+    item: {
+      tags: "ammo",
+      stackSize: 12,
+      ammoType: AMMOTYPE.heavy,
+    },
   },
   "Shotgun Shell": {
     tex: "ammo/shotgun",
-    stackSize: 12,
 
-    ammo: {
-      type: AMMOTYPE.shotgun,
-    }
+    item: {
+      tags: "ammo",
+      stackSize: 12,
+      ammoType: AMMOTYPE.shotgun,
+    },
   },
 
   "Light Armor": {
     tex: "armor/light",
-    stackSize: 1,
 
-    armor: {
+    item: {
+      tags: "armor",
       dr: 0.4,
     },
 
     scale: 0.8,
   },
 };
-
-
-
-let lootTables = {
-  guns: new LootTable([
-    {ob: "Pistol", weight: 1}, 
-    {ob: "Shotgun", weight: 1}, 
-    {ob: "SMG", weight: 1}, 
-    {ob: "Sniper", weight: 1}, 
-    {ob: "Machine Gun", weight: 1}, 
-  ]),
-
-  ammo: new LootTable([
-    ["Light Ammo", 1, 4,30],
-    ["Heavy Ammo", 1, 1,5],
-    ["Shotgun Shell", 1, 2,12],
-  ]),
-};
-
-
 
 
 

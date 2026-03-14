@@ -23,7 +23,7 @@ class PlayerInput extends Component {
     for (let i = 0; i < 15; i++) {      
       let ob = lootTables["all"].pick();
       let item = ob.getComponent(Item);
-      item.amount = Math.ceil(Math.random() * item.info.stackSize);
+      item.amount = Math.ceil(Math.random() * item.info.item.stackSize);
       ob = createEntity(ob, itemHolder);
 
       this.inventory.pickup(ob);

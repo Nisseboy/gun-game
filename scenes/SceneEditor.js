@@ -5,6 +5,8 @@ EDITORSTATE = {
   grab: 3,
 };
 
+const EditorComponents = ["Entity", "Interactable", "Inventory", "Item", "Light", "Spawner", "Tracker"];
+
 class SceneEditor extends Scene {
   constructor() {
     super();
@@ -23,6 +25,8 @@ class SceneEditor extends Scene {
       offset: new Vec(0, 0),
       startPos: new Vec(0, 0),
     }
+
+    this.renderLights = false;
   }
 
   initializeUI() {
@@ -48,6 +52,25 @@ class SceneEditor extends Scene {
           downloadFile(this.export());
         }]},
       }),
+      new UIBase({
+        style: {
+          position: "absolute",
+          pos: new Vec(uicam.size.x / 2, 0),
+          selfPos: new Vec(-0.5, 0),
+        },
+
+        children: [
+          new UIButtonText({
+            style: buttonStyle,
+            textStyle: buttonStyle,
+            text: "Lights",
+
+            events: {mouseup: [() => {
+              this.renderLights = !this.renderLights;
+            }]}
+          }),
+        ]
+      }),
     ]);  
   }
 
@@ -56,10 +79,10 @@ class SceneEditor extends Scene {
     this.uiProperties = undefined;
     this.uiPropertiesOb = undefined;
   }
-  openProperties(ob) {
+  openProperties(ob, closeSame = true) {
     let temp = this.uiPropertiesOb;
     this.closeProperties();
-    if (temp == ob) return;
+    if (closeSame && temp == ob) return;
     
     this.uiPropertiesOb = ob;
     this.uiProperties = new UIBase({
@@ -76,6 +99,12 @@ class SceneEditor extends Scene {
       },
 
       children: [
+        new UISettingBase({
+          style: {
+            size: new Vec(this.ui.size.x * 0.3, this.ui.size.y),
+            position: "relative",
+          }
+        }),
         new UIBase({
           style: {
             align: new Vec(0, 1),
@@ -106,36 +135,50 @@ class SceneEditor extends Scene {
       ],
     });
 
-    /*
-    if (ob.transform.pos) {
-      this.uiProperties.children.push(new UISettingText({
-        style: {...buttonStyle,
-          editor: {
-            numberOnly: true,
-          }
-        },
-
-        value: ob.transform.pos.x,
-
-        events: {change: [e => {
-          console.log(e);
-          
-        }]},
-      }));
-    }*/
 
     for (let c of ob.components) {
       let elem = new UIBase({
         style: {
           direction: "column",
           gap: 5,
+          growX: true,
         },
 
         children: [
-          new UIText({
-            style: buttonStyle,
-            textStyle: buttonStyle,
-            text: c.type,
+          new UIBase({
+            style: {
+              align: new Vec(0, 1),
+              growX: true,
+            },
+
+            children: [
+              new UIText({
+                style: buttonStyle,
+                textStyle: buttonStyle,
+                text: c.type,
+              }),
+              new UIBase({style: {growX: true}}),
+              new UISettingCheckbox({
+                style: buttonStyle,
+
+                value: c.active,
+
+                events: {change: [(e) => {
+                  c.active = e;
+                }]},
+              }),
+              new UIBase({style: {minSize: new Vec(5, 0)}}),
+              new UIButtonText({
+                style: buttonStyle,
+                textStyle: buttonStyle,
+                text: "X",
+
+                events: {mouseup: [() => {
+                  ob.removeComponent(c);
+                  this.openProperties(ob, false);
+                }]},
+              }),
+            ],
           }),
         ],
       });
@@ -161,22 +204,67 @@ class SceneEditor extends Scene {
       }
 
       if (c instanceof Sprite) {
-        setting("Tex", new UISettingText({
-          style: {...buttonStyle,},
+        setting("Tex", new UISettingDropdown({
+          style: {...buttonStyle,
+            maxSize: new Vec(1000, 600),
+          },
 
           value: c.tex,
+          choices: Object.keys(nde.tex),
 
           events: {change: [e => {
             c.tex = e;
           }]},
         }));
+      } else if (c instanceof Prefab) {
+        setting("pType", new UISettingDropdown({
+          style: {...buttonStyle,},
+
+          value: c.pType,
+
+          choices: Object.keys(prefabs),
+
+          events: {change: [e => {
+            let ob2 = prefab(e);
+            ob2.transform.pos.from(ob.transform.pos);
+            ob2.transform.dir = ob.transform.dir;
+            ob.parent.replaceChild(ob, ob2);
+            this.openProperties(ob2);
+          }]},
+        }));
+      } else if (c instanceof Item) {
+        setting("Amount", new UISettingRange({
+          style: {...buttonStyle,},
+
+          min: 1,
+          max: c.info.item.stackSize,
+          value: c.amount,
+
+          events: {change: [e => {
+            c.amount = e;            
+          }]},
+        }));
+      } else if (c instanceof Gun) {
+        setting("Ammo", new UISettingRange({
+          style: {...buttonStyle,},
+
+          min: 1,
+          max: ob.getComponent(Item).info.gun.maxAmmo,
+          value: c.ammo,
+
+          events: {change: [e => {
+            c.ammo = e;            
+          }]},
+        }));
       } else if (c instanceof Inventory) {
         
       } else if (c instanceof Spawner) {
-        setting("Loot Table", new UISettingText({
+        setting("Loot Table", new UISettingDropdown({
           style: {...buttonStyle,},
 
           value: c.lootTable,
+
+          choices: Object.keys(lootTables),
 
           events: {change: [e => {
             c.lootTable = e;
@@ -190,20 +278,175 @@ class SceneEditor extends Scene {
           value: c.amount,
 
           events: {change: [e => {
-            c.amount = e;
-            console.log(e);
-            
+            c.amount = e;            
           }]},
         }));
-      } else continue;
+      } else if (c instanceof Light) {
+        setting("Tex", new UISettingDropdown({
+          style: {...buttonStyle,
+            maxSize: new Vec(1000, 600),
+          },
+
+          value: c.tex,
+          choices: Object.keys(nde.tex),
+
+          events: {change: [e => {
+            c.tex = e;
+          }]},
+        }));
+        setting("Max Radius", new UISettingRange({
+          style: {...buttonStyle,},
+
+          min: 0,
+          max: 20.1,
+          value: c.maxR,
+          step: 0.1,
+
+          events: {input: [e => {
+            c.maxR = e;            
+          }]},
+        }));
+        setting("Brightness", new UISettingRange({
+          style: {...buttonStyle,},
+
+          min: 0,
+          max: 2.01,
+          value: c.brightness,
+          step: 0.01,
+
+          events: {input: [e => {
+            c.brightness = e;            
+          }]},
+        }));
+        setting("Smoothing Enabled", new UISettingCheckbox({
+          style: {...buttonStyle,},
+
+          value: c.smooth,
+
+          events: {change: [e => {
+            c.smooth = e;            
+          }]},
+        }));
+      }
 
       this.uiProperties.children.push(elem);
     }
+
+    this.uiProperties.children.push(new UIButtonText({
+      style: buttonStyle,
+      textStyle: buttonStyle,
+
+      text: "Add Component...",
+
+      events: {mouseup: [async () => {
+        let res = await nde.openPopup(new UIBase({
+          style: {...buttonStyle,
+            direction: "column",
+          },
+
+          children: [
+            ...EditorComponents.map(comp => {
+              return new UIButtonText({
+                style: {...buttonStyle,
+                  growX: true,
+                },
+                textStyle: buttonStyle,
+
+                text: comp,
+
+                events: {"mouseup": [() => {
+                  nde.resolvePopup(comp);
+                }]},
+              });
+            }),
+          ]
+        }));
+        if (!res) return;
+        
+        ob.addComponent(new (eval(res))());
+        this.openProperties(ob, false);
+      }]},
+    }));
     
     this.ui.children.push(this.uiProperties);
     this.uiProperties.calculateSize();
     this.uiProperties.growChildren();
     this.ui.positionChildren();    
+  }
+
+  async openInventory() {
+    let elem = new UIBase({
+      style: {...buttonStyle,
+        direction: "column",
+      },
+    });
+
+    function section(name, arr, getElem = (ob, i) => new UIBase(), evalElem = (ob, i) => ob) {
+      elem.children.push(new UIText({
+        style: buttonStyle,
+        textStyle: buttonStyle,
+        text: name,
+      }));
+
+      let row;
+      for (let i in arr) {
+        if (!row) {
+          row = new UIBase(new UIBase({
+            style: {gap: 5},
+
+            children: [
+              new UIBase({style: {minSize: new Vec(10, 0)}}),
+            ]
+          }));
+          elem.children.push(row);
+        }
+
+
+        let e = arr[i];
+        let uiElem = getElem(e, i);
+        uiElem.style.minSize = new Vec(50, 50);
+
+        row.children.push(new UIButton({
+          style: {...buttonStyle,
+            minSize: new Vec(50, 50),
+            align: new Vec(1, 1),
+            padding: 0,
+          },
+
+          events: {"mousedown": [() => {
+            nde.resolvePopup(evalElem(e, i));
+          }]},
+
+          children: [uiElem,]
+        }));
+      }
+    }
+
+    section("Prefabs", prefabs, (ob, i) => new UIImage({
+      style: buttonStyle,
+      image: nde.tex[ob.tex],
+    }), (ob, i) => {
+      return prefab(i);
+    });
+    section("Spawners", lootTables, (ob, i) => new UIText({
+      style: buttonStyle,
+      text: i,
+    }), (ob, i) => {
+      return new Ob({name: "Spawner"}, [
+        new Spawner({lootTable: i}),
+      ])
+    });
+
+
+    let res = await nde.openPopup(elem);
+    if (!res) return;
+
+    res.randomizeId();
+    world.appendChild(res);
+    this.state = EDITORSTATE.grab;
+    this.held.ob = res;
+    this.held.offset.set(0, 0);
+    this.held.startPos.from(this.mousePos);
   }
 
   get selectedMat() {
@@ -215,7 +458,9 @@ class SceneEditor extends Scene {
   }
 
   start() {
-    if (false && !world) {
+    this.loadWorld(allRooms[2]);
+
+    if (!world) {
       nde.openPopup(new UIBase({
         style: {...buttonStyle,
           direction: "column",
@@ -254,12 +499,11 @@ class SceneEditor extends Scene {
         ]
       }));
     }
-    this.loadWorld(allRooms[2]);
     
     this.mousePos = new Vec(0, 0);  
     this.state = EDITORSTATE.none;
 
-    this.openProperties(world.findId(318333));
+    this.openProperties(world?.findId(318333));
   }
 
   inputdown(key) {
@@ -271,9 +515,11 @@ class SceneEditor extends Scene {
       nde.transition = new TransitionSlide(scenes.mainMenu, new TimerTime(0.2));
     }
 
+    
+    if (nde.getKeyEqual(key, "Editor Inventory")) {
+      this.openInventory();
+    }
 
-
-    if (this.state != EDITORSTATE.none) return;
 
     if (this.hovered) {
       if (nde.getKeyEqual(key, "Editor Place")) {
@@ -285,31 +531,23 @@ class SceneEditor extends Scene {
       
       if (nde.getKeyEqual(key, "Editor Break")) {
         this.hovered.remove();
+        if (this.uiPropertiesOb == this.hovered) this.closeProperties();        
       }
       return;
     }
 
 
     if (nde.getKeyEqual(key, "Editor Place")) {
-      if (this.uiProperties) {
-        this.closeProperties();
-        return;
-      }
-
       this.state = EDITORSTATE.place;
     }
-    if (nde.getKeyEqual(key, "Editor Break")) {
-      if (this.uiProperties) {
-        this.closeProperties();
-        return;
-      }
-      
+    if (nde.getKeyEqual(key, "Editor Break")) {      
       this.state = EDITORSTATE.break;
     }
   }
   inputup(key) {
-    if (nde.getKeyEqual(key, "Editor Place")) {
+    if (nde.getKeyEqual(key, "Editor Place")) {      
       if (this.state == EDITORSTATE.grab && this.held.startPos.isEqualTo(this.mousePos)) this.openProperties(this.held.ob);
+      
       this.state = EDITORSTATE.none;
     }
     if (nde.getKeyEqual(key, "Editor Break")) {
@@ -338,6 +576,14 @@ class SceneEditor extends Scene {
       case EDITORSTATE.grab:
         this.held.ob.transform.pos.from(this.mousePos).addV(this.held.offset);
         if (!nde.getKeyPressed("Editor Snap Modifier") && !this.held.startPos.isEqualTo(this.mousePos)) this.held.ob.transform.pos.mul(6).round().mul(1/6);
+        if (nde.scrolled) {
+          if (!nde.getKeyPressed("Editor Snap Modifier")) {
+            this.held.ob.transform.dir += Math.sign(nde.scrolled) * Math.PI / 4;
+            this.held.ob.transform.dir = Math.round(this.held.ob.transform.dir / (Math.PI / 4)) * (Math.PI / 4);            
+          } else {
+            this.held.ob.transform.dir += nde.scrolled / 100 * Math.PI / 64;
+          }
+        }
         break;
     }
 
@@ -371,6 +617,15 @@ class SceneEditor extends Scene {
       let g = world.getComponent(Grid);
       g.cam = cam;
       world.render();
+
+
+      if (this.renderLights) {
+        this.findLights();      
+        renderer.ctx.globalCompositeOperation = "multiply";
+        renderLights(cam);
+        renderer.ctx.globalCompositeOperation = "source-over";
+      }
+
       
       renderer.set("fill", "rgba(0, 0, 0, 0)");
       renderer.set("stroke", "rgba(0, 0, 0, 0.5)");
@@ -408,6 +663,16 @@ class SceneEditor extends Scene {
     });
   }
 
+  findLights() {
+    lights.length = 0;
+    let comps = world.getComponents(Light);
+    for (let c of comps) {      
+      if (!c.hasStarted) c.start();
+      c.renderMask();
+      lights.push(c);
+    }
+  }
+
   export() {
     return `(()=>{return cloneData('${world.serialize()}');})();`;
   }
@@ -416,7 +681,6 @@ class SceneEditor extends Scene {
 
 async function downloadFile(content) {
   const options = {
-    suggestedName: "room.ob",
     types: [
       {
         description: "Room file",

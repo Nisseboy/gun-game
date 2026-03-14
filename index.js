@@ -41,6 +41,7 @@ nde.controls = {
   "Editor Place": "mouse0",
   "Editor Break": "mouse2",
   "Editor Snap Modifier": "Shift",
+  "Editor Inventory": "e",
 
 
   "Pause": "Escape",
@@ -63,7 +64,8 @@ nde.on("afterSetup", () => {
     scenes[name] = new (eval(path))();
   }
 
-  processItems();
+  processPrefabs();
+  processGunSprites();
   processRooms();
   
   initClient();
@@ -131,6 +133,79 @@ function getSlotDown(key) {
 function pixelScale(ob, scale = 1) {
   ob.transform.size.from(nde.tex[ob.getComponent(Sprite).tex].size).mul(1/20 * scale);
 }
+
+function processPrefabs() {
+  for (let i in prefabs) {
+    let p = prefabs[i];
+
+    p.tex ??= "duck/1";
+    p.components ??= [];
+
+    if (p.gun) p.item ??= {};
+    if (p.item) {
+      let e = p.item;
+
+      e.stackSize ??= 1;
+      e.tags ??= "";
+
+      p.components.push(Interactable, Item);
+
+      if (e.tags.includes("ammo")) {
+        e.ammoType ??= AMMOTYPE.light;
+        p.scale ??= 0.5;
+      }
+      if (e.tags.includes("armor")) {
+        e.dr ??= 0.5;
+      }
+    }
+
+    if (p.gun) {
+      let e = p.gun;
+
+      e.ammoType ??= AMMOTYPE.light;
+      e.maxAmmo ??= 12;
+      e.damage ??= 20;
+      e.cooldown ??= 0;
+      e.reloadTime ??= 1;
+      e.automatic ??= false;
+      e.spread ??= 0;
+      e.laser ??= false;
+      e.shootAud ??= "gun/pistolShot";
+      e.reloadAud ??= "gun/reloadMagazine";
+
+      if (p.item.tags.length != 0) p.item.tags += ",";
+      p.item.tags += "weapon";
+
+      p.components.push(AudioSource, Gun);
+    }
+
+
+
+    p.scale ??= 1;
+  }
+
+
+  
+  lootTables["all"] = new LootTable(Object.keys(prefabs).map(type=>prefab(type)));
+}
+function prefab(prefab, props = {}) {
+  let type = prefabs[prefab];
+
+  let ob = new Ob({name: prefab, ...props}, [
+    new Sprite(type.tex),
+    new Prefab(prefab),
+  ]);
+  
+
+  for (let c of type.components) {
+    ob.addComponent(new c());
+  }
+
+  ob.update();
+  
+  return ob;
+}
+
 
 let ping = 100;
 let lastPingTime = 0;

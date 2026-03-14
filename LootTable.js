@@ -45,7 +45,7 @@ class LootTable {
       if (tot < r) continue;
       
       let ob = elem.ob;
-      if (typeof ob == "string") ob = createItem(ob);
+      if (typeof ob == "string") ob = prefab(ob);
       let item = ob.copy();
       item.randomizeId();
       if (elem.min != undefined) item.getComponent(Item).amount = elem.min + Math.floor(Math.random() * (elem.max-elem.min));

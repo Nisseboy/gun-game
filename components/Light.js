@@ -11,14 +11,25 @@ class Light extends Component {
 
     this.size = props.size || 0;
     this.cull = (props.cull != undefined) ? props.cull : true;
+
+
+    this.lastPos = vecZero._();
   }
 
-  start() {
+
+  enable() {
     lights.push(this);
 
     this.cached = false;
     this.lastPos = this.transform.pos.copy();
     this.lastDir = this.transform.dir;
+    this.lastMaxR = this.maxR;
+  }
+  disable() {    
+    let index = lights.indexOf(this);
+    if (index == -1) return;
+
+    lights.splice(index, 1);
   }
 
   renderMask() {
@@ -37,15 +48,20 @@ class Light extends Component {
       this.cached = false;
       this.mask.resize(vecOne._mul(size));
     }
-
+    if (this.maxR != this.lastMaxR) {
+      this.cached = false;
+      this.lastMaxR = this.maxR;
+    }
+    
     if (this.cached) return this.mask;
 
 
     let ctx = this.mask.ctx;
 
 
+    ctx.clearRect(0, 0, this.mask.size.x, this.mask.size.y);
     ctx.globalCompositeOperation = "source-over";
-    world.grid.createMask(this.transform.pos, this.maxR, 1, this.mask);
+    world.getComponent(Grid).createMask(this.transform.pos, this.maxR, 1, this.mask);
 
     let rotate = (this.transform.dir && this.tex != "light/1");
     ctx.globalCompositeOperation = "source-in";
@@ -61,13 +77,6 @@ class Light extends Component {
     
     this.cached = true;
     return this.mask;
-  }
-
-  remove() {
-    let index = lights.indexOf(this);
-    if (index == -1) return;
-
-    lights.splice(index, 1);
   }
 
   from(data) {
@@ -93,8 +102,6 @@ class SkyLight extends Light {
 
     this.cull = false;
     this.smooth = false;
-
-    this.clientOnly = true;
   }
 
 
@@ -115,13 +122,14 @@ class SkyLight extends Light {
       this.cached = false;
       this.mask.resize(vecOne._mul(this.size));
     }
-
+    
     if (this.cached) return this.mask;
 
 
     let ctx = this.mask.ctx;
     let size = this.mask.size;
     let grid = world.getComponent(Grid);
+    
 
     ctx.fillStyle = "rgba(0, 0, 0, 1)";
     ctx.fillRect(0, 0, size.x, size.y);

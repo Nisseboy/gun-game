@@ -21,17 +21,16 @@ class Gun extends Component {
   }
 
   get tipPos() {
-    let item = this.getComponent(Item);
-    return item.transform.pos._addV(item.info.gun.tipOffset._rotateZAxis(item.transform.dir));
+    return this.transform.pos._addV(this.getComponent(Prefab).info.gun.tipOffset._rotateZAxis(this.transform.dir));
   }
 
   init() {
-    if (this.ammo == undefined) this.ammo = this.getComponent(Item).info.gun.maxAmmo;
+    if (this.ammo == undefined) this.ammo = this.getComponent(Prefab).info.gun.maxAmmo;
     
   }
 
   shoot() {
-    let info = this.getComponent(Item).info.gun;
+    let info = this.getComponent(Prefab).info.gun;
 
     if (shootTimer) return;
     if (reloadTimer) {
@@ -98,14 +97,14 @@ class Gun extends Component {
     });
   }
   reload(inventory) {
-    let info = this.ob.item.info.gun;
+    let info = this.getComponent(Prefab).info.gun;
 
     if (this.ammo == info.maxAmmo) return;
     if (reloadTimer || shootTimer) return;
 
     sendAudio(this.ob, "gun/reloadMagazineStart");
 
-    reloadingAmmo = inventory.find((ob) => {return ob.item.info.ammo?.type == info.ammoType});
+    reloadingAmmo = inventory.find((ob) => {return ob.getComponent(Prefab).info.item?.ammoType == info.ammoType});
     if (!reloadingAmmo) return;
 
     reloadTimer = new TimerTime(info.reloadTime, () => {
@@ -121,7 +120,7 @@ class Gun extends Component {
           sendAudio(this.ob, info.reloadAud);
           reloadTimer.reset();
 
-          reloadingAmmo = inventory.find((ob) => {return ob.item.info.ammo?.type == info.ammoType});
+          reloadingAmmo = inventory.find((ob) => {return ob.getComponent(Prefab).info.item?.ammoType == info.ammoType});
           if (this.ammo >= info.maxAmmo || !reloadingAmmo) cancelReload();
           return;
         } 

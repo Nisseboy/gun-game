@@ -1219,7 +1219,7 @@ class Img extends Renderable {
   }
   image(img, pos, size) {
     if (!img) {
-      return;
+      return
     }
 
     this.ctx.drawImage(img.getImg().canvas, pos.x, pos.y, size.x, size.y);
@@ -4412,7 +4412,7 @@ class Ob extends Serializable {
   }
   getComponents(type, limit = 9999, arr = []) {
     let comp = this.components.find(e=>{return e instanceof type});
-    if (comp) arr.push(comp);
+    if (comp) arr.push(comp);    
 
     for (let i = 0; i < this.children.length; i++) {
       if (arr.length == limit) return arr;
@@ -4944,7 +4944,7 @@ class NDE {
     });
   }
 
-  setScene(newScene) {
+  setScene(newScene, startNewScene = true) {
     if (this.e.events["beforeScene"]) {
       for (let ee of this.e.events["beforeScene"]) {
         let res = ee(newScene); 
@@ -4957,10 +4957,12 @@ class NDE {
     }
 
 
-    if (this.scene) this.scene.stop();
     this.scene = newScene;
-    this.scene.start();
-    this.scene.hasStarted = true;
+    if (startNewScene) {
+      if (this.scene) this.scene.stop();
+      this.scene.start();
+      this.scene.hasStarted = true;
+    }
 
     if (this.e.events["afterScene"]) {
       for (let ee of this.e.events["afterScene"]) {
@@ -5158,7 +5160,7 @@ class NDE {
       this.scenePopup.captureScreen();
       this.scenePopup.ui.children[0].children[0] = ui;
       this.scenePopup.ui.initUI();
-      this.setScene(this.scenePopup);
+      this.setScene(this.scenePopup, false);
     });
   }
   resolvePopup(...args) {
@@ -5166,7 +5168,7 @@ class NDE {
     
     this.resolvePopupFunc(...args);
     this.resolvePopupFunc = undefined;
-    this.setScene(this.scenePopup.lastScene);
+    this.setScene(this.scenePopup.lastScene, false);
   }
 
   loadAsset(assetDescriptor) {

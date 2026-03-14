@@ -4,22 +4,13 @@ class Item extends Component {
 
     this.held = false;
 
-    this.itemType = undefined;
-    this.itemType = props.itemType || "Item";
-
     this.amount = props.amount || 1;
 
     this.visible = false;
   }
 
   get info() {
-    return itemTypes[this.itemType];
-  }
-
-  init() {
-    this.getComponent(Sprite).tex = this.info.tex;
-
-    pixelScale(this.ob, this.info.scale);
+    return this.getComponent(Prefab).info;
   }
 
   start() {
@@ -45,7 +36,7 @@ class Item extends Component {
       this.held = false;
       this.ob.visible = true;
       interactable.active = true; 
-      interactable.text = this.itemType + ((this.amount != 1) ? ` (${this.amount})` : "");
+      interactable.text = this.ob.name + ((this.amount != 1) ? ` (${this.amount})` : "");
       this.ob.setParent(itemHolder);
     });
 
@@ -57,8 +48,7 @@ class Item extends Component {
       interactable.active = true;
     }
 
-    this.ob.name = this.itemType;
-    interactable.text = this.itemType + ((this.amount != 1) ? ` (${this.amount})` : "");
+    interactable.text = this.ob.name + ((this.amount != 1) ? ` (${this.amount})` : "");
   }
 
   split(amount) {
@@ -75,7 +65,7 @@ class Item extends Component {
     let item = ob?.getComponent(Item);
     if (!ob || !item || ob.name != this.ob.name) return ob;
 
-    amount = Math.min(item.amount, amount, Math.max(this.info.stackSize - this.amount, 0));
+    amount = Math.min(item.amount, amount, Math.max(this.info.item.stackSize - this.amount, 0));
 
     this.sendAmount(this.amount + amount);
     item.sendAmount(item.amount - amount);
@@ -144,7 +134,6 @@ class Item extends Component {
     this.stackSize = data.stackSize;
     this.tags = data.tags;
     this.held = data.held;
-    this.itemType = data.itemType;
 
     this.amount = data.amount;
 
@@ -159,79 +148,9 @@ class Item extends Component {
 }
 
 
-function createItem(props = {}) {
-  if (typeof props == "string") props = {itemType: props};
-
-  let ob = new Ob({}, [
-    new Sprite(),
-    new AudioSource(),
-    new Interactable(),
-    new Item(props),
-  ]);
-
-  let type = itemTypes[props.itemType];
-  for (let c of type.components) {
-    ob.addComponent(new c());
-  }
-
-  return ob;
-}
-
-
-
-
-function processItems() {
-  for (let i in itemTypes) {
-    let type = itemTypes[i];
-
-    if (type.stackSize == undefined) type.stackSize = 1;
-    if (type.tags == undefined) type.tags = "";
-    if (type.tex == undefined) type.tex = "duck/1";
-    if (type.scale == undefined) type.scale = 1;
-    if (type.components == undefined) type.components = [];
-
-    let g = type.gun;
-    if (g) {
-      if (g.ammoType == undefined) g.ammoType = AMMOTYPE.light;
-      if (g.maxAmmo == undefined) g.maxAmmo = 12;
-      if (g.damage == undefined) g.damage = 20;
-      if (g.cooldown == undefined) g.cooldown = 0;
-      if (g.reloadTime == undefined) g.reloadTime = 1;
-      if (g.automatic == undefined) g.automatic = false;
-      if (g.spread == undefined) g.spread = 0;
-      if (g.laser == undefined) g.laser = false;
-      if (g.shootAud == undefined) g.shootAud = "gun/pistolShot";
-      if (g.reloadAud == undefined) g.reloadAud = "gun/reloadMagazine";
-
-      if (type.tags.length != 0) type.tags += ",";
-      type.tags += "weapon";
-
-      type.components.push(Gun);
-    }
-
-    let a = type.ammo;
-    if (a) {
-      if (a.type == undefined) a.type = AMMOTYPE.light;
-
-      type.scale *= 0.5;
-    }
-
-    let ar = type.armor;
-    if (ar) {
-      if (ar.dr == undefined) ar.dr = 0.5;
-
-      if (type.tags.length != 0) type.tags += ",";
-      type.tags += "armor";
-    }
-  }
-
-  processGunSprites();
-
-  lootTables["all"] = new LootTable(Object.keys(itemTypes).map(type=>createItem(type)));
-}
 function processGunSprites() {
-  for (let i in itemTypes) {
-    let type = itemTypes[i];
+  for (let i in prefabs) {
+    let type = prefabs[i];
     if (!type.gun) continue;
     
     let texture = nde.tex[type.tex];        
