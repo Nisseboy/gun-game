@@ -7,7 +7,6 @@ let assetPaths = [
   {"path":"duck/step/4.mp3"},
   {"path":"crosshair.png"},
   {"path":"duck/dead.png"},
-  {"path":"floor/drain.png"},
   {"path":"gun/machinegun.png"},
   {"path":"gun/pistol.png"},
   {"path":"gun/pistolShot.mp3"},
@@ -23,11 +22,8 @@ let assetPaths = [
   {"path":"inventory/slot.png"},
   {"path":"rooms/testRoom.ob"},
   {"path":"rooms/testRoom2.ob"},
-  {"path":"wall/1.png"},
   {"path":"duck/rot.anim"},
   {"path":"duck/walk.anim"},
-  {"path":"floor/floor.png"},
-  {"path":"ground/grass.png"},
   {"path":"pumpkin.png"},
   {"path":"ammo/light,heavy,shotgun.png"},
   {"path":"inventory/weapon.png"},
@@ -36,6 +32,12 @@ let assetPaths = [
   {"path":"inventory/armor.png"},
   {"path":"gun/INFO.txt"},
   {"path":"inventory/INFO.txt"},
-  {"path":"rooms/testRoom3.ob"}
+  {"path":"rooms/testRoom3.ob"},
+  {"path":"material/ground/grass.png"},
+  {"path":"material/wall/stone.png"},
+  {"path":"material/floor/stone.png"},
+  {"path":"material/floor/stonedrain.png"},
+  {"path":"material/window/stone.png"},
+  {"path":"material/fence/chain.png"}
 ];
 let scenePaths = ["SceneEditor","SceneGame","SceneMainMenu","SceneSettings"];

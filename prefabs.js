@@ -132,6 +132,17 @@ let prefabs = {
 
 
 
+
+
+let materials = [
+  new Material("ground/grass"),
+  new Material("wall/stone"),
+  new Material("floor/stone"),
+  new Material("window/stone"),
+  new Material("fence/chain"),
+];
+
+
 let EntityPlayerInventory = new Inventory({size: hotbarSize * 3, w: hotbarSize, startIndex: hotbarSize});
   EntityPlayerInventory.tags[0] = "weapon";
   EntityPlayerInventory.tags[1] = "weapon";

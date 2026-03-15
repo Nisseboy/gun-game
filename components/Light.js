@@ -94,91 +94,6 @@ class Light extends Component {
   }
 }
 
-class SkyLight extends Light {
-  constructor(props = {}) {
-    super(props);
-    
-    this.cellSize = props.cellSize || 10;
-
-    this.cull = false;
-    this.smooth = false;
-  }
-
-
-  start() {
-    super.start();
-
-    let grid = world.getComponent(Grid);
-    this.maxR = grid.size.x / 2;
-    this.size = grid.size.x * this.cellSize;
-  }
-
-  renderMask() {    
-    if (!this.mask) {
-      this.cached = false;
-      this.mask = new Img(vecOne._mul(this.size));
-    }
-    if (this.mask.size.x != this.size) {
-      this.cached = false;
-      this.mask.resize(vecOne._mul(this.size));
-    }
-    
-    if (this.cached) return this.mask;
-
-
-    let ctx = this.mask.ctx;
-    let size = this.mask.size;
-    let grid = world.getComponent(Grid);
-    
-
-    ctx.fillStyle = "rgba(0, 0, 0, 1)";
-    ctx.fillRect(0, 0, size.x, size.y);
-
-    let padding = 2;
-    ctx.fillStyle = "rgb(255, 255, 255)";
-    let mat;
-    let openings = [];
-    for (let x = 0; x < grid.size.x; x++) {
-      for (let y = 0; y < grid.size.y; y++) {
-        mat = materials[grid.g[x + y * grid.size.x]];
-
-        if (!mat.dark && !mat.solid) ctx.fillRect(x * this.cellSize - padding, y * this.cellSize - padding, this.cellSize + padding * 2, this.cellSize + padding * 2);
-
-        if (mat.dark) {
-          if (materials[grid.g[(x-1) + (y+0) * grid.size.x]].outside) openings.push({pos: new Vec(x, y+1), dir: -Math.PI / 2});
-          if (materials[grid.g[(x+1) + (y+0) * grid.size.x]].outside) openings.push({pos: new Vec(x+1, y), dir: Math.PI / 2});
-          if (materials[grid.g[(x+0) + (y-1) * grid.size.x]].outside) openings.push({pos: new Vec(x, y), dir: 0});
-          if (materials[grid.g[(x+0) + (y+1) * grid.size.x]].outside) openings.push({pos: new Vec(x+1, y+1), dir: Math.PI});
-        }
-      }
-    }
-
-    ctx.globalCompositeOperation = "lighten";
-    for (let o of openings) {
-      ctx.save();
-      ctx.translate(o.pos.x * this.cellSize, o.pos.y * this.cellSize);
-      ctx.rotate(o.dir);
-
-      
-      let brightness;
-      for (let x = -padding; x < this.cellSize + padding; x++) {
-        for (let y = -padding; y < this.cellSize * 2 + padding; y++) {
-          brightness = (1 - y / (this.cellSize * 2)) * 255;
-          ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`
-          ctx.fillRect(x, y, 1, 1);
-
-        }
-      }
-
-      ctx.restore();
-    }
-    ctx.globalCompositeOperation = "source-over";
-
-
-    this.cached = true;    
-    return this.mask;
-  }
-}
 
 
 let lightTex = new Img(vecOne);
@@ -222,7 +137,8 @@ function renderLight(light) {
   let size = new Vec(light.maxR * 2, light.maxR * 2);
 
   lightTex.ctx.imageSmoothingEnabled = light.smooth;
-  lightTex.image(mask, light.transform.pos._subV(size.mul(0.5)), size.mul(2));
+  let pos = light instanceof SkyLight ? world.getComponent(Grid).size._mul(0.5) : light.transform.pos;
+  lightTex.image(mask, pos._subV(size.mul(0.5)), size.mul(2));
 }
 
 

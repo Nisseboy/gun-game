@@ -2,7 +2,6 @@ updateInterval = 1000/10;
 maxPlayers = 12;
 
 const ITEMHOLDERID = 1;
-const SKYID = 2;
 
 class Server extends ServerBase {
   init() {
@@ -90,13 +89,14 @@ class Server extends ServerBase {
     let grid = new Grid({size: new Vec(20, 20)});
     let w = new Ob({name: "root"}, [
       grid,
+      new Sky({day: 0.7, dayLengthS: 240}),
       new PlayerStore(),
     ], [
       new Ob({name: "itemHolder", id: ITEMHOLDERID}),
-      new Ob({name: "sky", id: SKYID, pos: grid.size._mul(0.5)}, [new SkyLight()]),
     ]);
 
     grid.placeRoom(allRooms[1], new Vec(5, 5));
+    grid.fenceOff();
 
     
     let itemHolder = w.findId(ITEMHOLDERID);

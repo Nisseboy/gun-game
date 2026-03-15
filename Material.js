@@ -1,18 +1,23 @@
+/*
+         Opaque  Solid   Inside
+Ground   N       N       N
+Floor    N       N       Y
+Wall     Y       Y       Y
+Window   N       Y       Y
+Fence    N       Y       N
+
+
+*/
+
+
 class Material {
-  constructor(props = {}) {
-    this.tex = props.tex;
-    let split = this.tex.split("/");
-    this.solid = split[0] == "wall";
-    this.dark = split[0] == "floor";
-    this.outside = split[0] == "ground";
+  constructor(tex, props = {}) {
+    this.tex = "material/" + tex;
+    let type = tex.split("/")[0];
 
-
+    this.opaque = type == "wall";
+    this.solid = type == "wall"   || type == "window" || type == "fence";
+    this.inside = type == "floor" || type == "wall" || type == "window";
+    this.sky = !this.inside;
   }
 }
-
-
-let materials = [
-  new Material({tex: "ground/grass"}),
-  new Material({tex: "wall/1"}),
-  new Material({tex: "floor/floor"}),
-];

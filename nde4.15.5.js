@@ -4838,6 +4838,9 @@ class NDE {
     document.addEventListener("wheel", e => {
       this.inputManager.fire("input_wheel", e);
     });
+    audioContext.addEventListener("statechange", (e) => {
+      this.fire("audioContextStarted");        
+    });
 
     
     window.oncontextmenu = (e) => {
@@ -5213,11 +5216,6 @@ class NDE {
   tryStartAudio() {
     if (audioContext.state != "running") {
       audioContext.resume();
-    
-      
-      setTimeout(() => {
-        this.fire("audioContextStarted");        
-      }, 0);
     }
   }
 }

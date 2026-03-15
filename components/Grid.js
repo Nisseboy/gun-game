@@ -106,15 +106,36 @@ class Grid extends Component {
       itemHolder.appendChild(c);
     }
   }
+  fenceOff() {
+    for (let x = 0; x < this.size.x; x++) {
+      for (let y = 0; y < this.size.y; y++) {
+        if (x == 0 || y == 0 || x == this.size.x - 1 || y == this.size.y - 1) this.g[x + y * this.size.x] = 4;
+      }
+    }
+  }
 
-  raycast(pos, dirVec, maxDist) {return this.raycastFast(pos.x, pos.y, dirVec.x, dirVec.y, maxDist)}
-  raycastFast(posx, posy, dirx, diry, maxDist = 100) {
+  raycast(pos, dirVec, maxDist, tag) {return this.raycastFast(pos.x, pos.y, dirVec.x, dirVec.y, maxDist, tag)}
+  raycastFast(posx, posy, dirx, diry, maxDist = 100, tag = "solid") {
     const gridW = this.size.x;
-    const gridH = this.size.h;
+    const gridH = this.size.y;
 
     // current grid cell
     let mapX = Math.floor(posx);
     let mapY = Math.floor(posy);
+
+    let mat;
+
+    /*
+    mat = this.g[mapX + mapY * gridW];
+    if (materials[mat]?.[tag]) {
+      return {
+        x: posx,
+        y: posy ,
+        d: 0,
+        isHor: false,
+        mat: mat,
+      };
+    }*/
 
     // step direction
     const stepX = dirx < 0 ? -1 : 1;
@@ -123,8 +144,6 @@ class Grid extends Component {
     // avoid division by zero
     const deltaX = dirx !== 0 ? Math.abs(1 / dirx) : 1e6;
     const deltaY = diry !== 0 ? Math.abs(1 / diry) : 1e6;
-
-    let mat;
 
     // distance to first grid boundary
     let tMaxX =
@@ -156,7 +175,7 @@ class Grid extends Component {
       if (t >= maxDist || mapX < 0 || mapX >= gridW || mapY < 0 || mapY >= gridH) break;
 
       mat = this.g[mapX + mapY * gridW];
-      if (materials[mat]?.solid) {
+      if (materials[mat]?.[tag]) {
         return {
           x: posx + dirx * t,
           y: posy + diry * t,
@@ -190,9 +209,9 @@ class Grid extends Component {
       cos = Math.cos(i * dirStep);
       sin = Math.sin(i * dirStep)
 
-      res = this.raycastFast(pos.x, pos.y, cos, sin, maxR); 
+      res = this.raycastFast(pos.x, pos.y, cos, sin, maxR, "opaque");
       d = res?.d || maxR;
-      
+       
       ctx.lineTo(texture.size.x * 0.5 * (1 + cos * d * scaling), texture.size.y * 0.5 * (1 + sin * d * scaling * invAr));
     }
 
@@ -213,6 +232,49 @@ class Grid extends Component {
   }
   inBounds(v) {
     return (v.x >= 0 && v.x < this.size.x && v.y >= 0 && v.y < this.size.y);
+  }
+
+
+  moveEdge(edge, dir) {
+    let x = edge % 2 == 0;
+    let shift = edge > 1;
+    
+
+    if (shift) {
+      let vec = new Vec(x ? 1 : 0, x ? 0 : 1).mul(dir);
+
+      function move(ob) {
+        for (let c of ob.children) {
+          c.transform.pos.addV(vec);
+          move(c);
+        }
+      }
+      move(this.ob);
+      this.cam.pos.addV(vec);
+    }
+
+    let oldSize = this.size.copy();
+    let oldGrid = [...this.g];
+
+    if (x) this.size.x += dir;
+    else this.size.y += dir;
+
+    this.g.length = this.size.x * this.size.y;
+    this.g.fill(0);
+
+    let dx = (x && shift) ? dir : 0;
+    let dy = (!x && shift) ? dir : 0;
+
+    for (let x = 0; x < oldSize.x; x++) {
+      for (let y = 0; y < oldSize.y; y++) {
+        if (x+dx >= this.size.x || y+dy >= this.size.y) continue;
+
+        let kOld = x + y * oldSize.x;
+        let k = (x+dx) + (y+dy) * this.size.x;
+
+        this.g[k] = oldGrid[kOld];
+      }
+    }
   }
 
 

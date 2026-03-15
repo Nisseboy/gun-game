@@ -40,6 +40,7 @@ nde.controls = {
 
   "Editor Place": "mouse0",
   "Editor Break": "mouse2",
+  "Editor Pick": "mouse1",
   "Editor Snap Modifier": "Shift",
   "Editor Inventory": "e",
 

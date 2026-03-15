@@ -81,6 +81,20 @@ class SceneSettings extends Scene {
             },
           }),
 
+          new UISettingRange({
+            name: "skyUpdateFreqH", displayName: "Sky Update Frequency (hours)",
+            value: 0.5,
+            min: 0, max: 4.1, step: 0.1,
+
+            style: {...rangeStyle,},
+          }),
+
+          new UIBase({
+            style: {
+              minSize: buttonStyle.minSize || new Vec(0, 0),
+            },
+          }),
+
           new UISettingCheckbox({
             name: "autoConnect", displayName: "Autoconnect to dev server",
             value: false,

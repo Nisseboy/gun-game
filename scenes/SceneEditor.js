@@ -3,6 +3,7 @@ EDITORSTATE = {
   place: 1,
   break: 2,
   grab: 3,
+  edge: 4,
 };
 
 const EditorComponents = ["Entity", "Interactable", "Inventory", "Item", "Light", "Spawner", "Tracker"];
@@ -26,7 +27,18 @@ class SceneEditor extends Scene {
       startPos: new Vec(0, 0),
     }
 
+    this.edge = {
+      hovered: undefined,
+      held: 0,
+      startPos: 0,
+      moved: 0,
+    };
+
     this.renderLights = false;
+  }
+
+  get selectedMat() {
+    return materials[this.selectedMatIndex];
   }
 
   initializeUI() {
@@ -67,6 +79,7 @@ class SceneEditor extends Scene {
 
             events: {mouseup: [() => {
               this.renderLights = !this.renderLights;
+              world.getComponents(Light).forEach(c => c.cached = false);
             }]}
           }),
         ]
@@ -449,16 +462,19 @@ class SceneEditor extends Scene {
     this.held.startPos.from(this.mousePos);
   }
 
-  get selectedMat() {
-    return materials[value];
-  }
-
   loadWorld(w) {
-    world = w;
+    world = w.copy();
+    this.cam.pos = world.getComponent(Grid).size._mul(0.5);
+    let sky = new Sky();
+    world.addComponent(sky);
+
+    sky.init();
+    sky.start();
+    sky.update();
   }
 
   start() {
-    this.loadWorld(allRooms[2]);
+    this.loadWorld(allRooms[0]);
 
     if (!world) {
       nde.openPopup(new UIBase({
@@ -476,7 +492,7 @@ class SceneEditor extends Scene {
             text: "New Room...",
 
             events: {"mouseup": [() => {
-              this.loadWorld(new Ob({}, [new Grid({size: new Vec(16, 9)})]));
+              this.loadWorld(new Ob({}, [new Grid({size: new Vec(5, 5)})]));
               nde.resolvePopup();
             }]},
           }),
@@ -519,7 +535,7 @@ class SceneEditor extends Scene {
     if (nde.getKeyEqual(key, "Editor Inventory")) {
       this.openInventory();
     }
-
+    
 
     if (this.hovered) {
       if (nde.getKeyEqual(key, "Editor Place")) {
@@ -538,6 +554,15 @@ class SceneEditor extends Scene {
 
 
     if (nde.getKeyEqual(key, "Editor Place")) {
+      if (this.edge.hovered != undefined) {
+        this.state = EDITORSTATE.edge;
+        this.edge.held = this.edge.hovered;
+        this.edge.startPos = (this.edge.held % 2 == 0 ? this.mousePos.x : this.mousePos.y) * (this.edge.held > 1 ? -1 : 1);
+        this.edge.moved = 0;
+        
+        return;
+      }
+
       this.state = EDITORSTATE.place;
     }
     if (nde.getKeyEqual(key, "Editor Break")) {      
@@ -566,13 +591,19 @@ class SceneEditor extends Scene {
       nde.getKeyPressed("Move Down") - nde.getKeyPressed("Move Up"),
     ).normalize().mul(10 * speedMult * dt));
 
+    if (nde.getKeyPressed("Editor Pick")) {
+      this.selectedMatIndex = world.getComponent(Grid).getMat(this.mousePos) ?? 0;
+    }
+
     switch(this.state) {
       case EDITORSTATE.place:
-        g.setMat(this.mousePos, 1);
+        g.setMat(this.mousePos, this.selectedMatIndex);
         break;
+
       case EDITORSTATE.break:
         g.setMat(this.mousePos, 0);
         break;
+
       case EDITORSTATE.grab:
         this.held.ob.transform.pos.from(this.mousePos).addV(this.held.offset);
         if (!nde.getKeyPressed("Editor Snap Modifier") && !this.held.startPos.isEqualTo(this.mousePos)) this.held.ob.transform.pos.mul(6).round().mul(1/6);
@@ -585,18 +616,51 @@ class SceneEditor extends Scene {
           }
         }
         break;
+
+      case EDITORSTATE.edge:
+        let x = Math.round(((this.edge.held % 2 == 0 ? this.mousePos.x : this.mousePos.y) * (this.edge.held > 1 ? -1 : 1)) - this.edge.startPos);
+        
+        if (x == this.edge.moved) break;
+
+        let dir = Math.sign(x - this.edge.moved);
+        this.edge.moved = x;
+        if (this.edge.held > 1) this.edge.moved -= dir;
+
+        g.moveEdge(this.edge.held, dir);
+        
+        break;
     }
 
-    this.hovered = this.getHoveredOb(world);
+    this.hovered = this.getHoveredOb();
+    this.edge.hovered = this.getHoveredEdge();
   }
 
-  getHoveredOb(ob) {
+  getHoveredOb(ob = world) {
     for (let c of ob.children) {
       let h = this.getHoveredOb(c);
       if (h) return h;
 
       if (this.mousePos.x >= c.transform.pos.x - c.transform.size.x * 0.5 && this.mousePos.y >= c.transform.pos.y - c.transform.size.y * 0.5 && this.mousePos.x <= c.transform.pos.x + c.transform.size.x * 0.5 && this.mousePos.y <= c.transform.pos.y + c.transform.size.y * 0.5 && c.id > 2) return c;
     }
+  }
+
+  getHoveredEdge() {
+    let p = this.mousePos;
+    let g = world.getComponent(Grid);
+
+    let deltaTop = p.y;
+    let deltaRight = g.size.x - p.x;
+    let deltaDown = g.size.y - p.y;
+    let deltaLeft = p.x;
+
+    let eps = 0.1;
+
+    if (deltaLeft > 0 && deltaRight > 0 && Math.abs(deltaTop) < eps) return 3;
+    if (deltaTop > 0 && deltaDown > 0 && Math.abs(deltaRight) < eps) return 0;
+    if (deltaRight > 0 && deltaLeft > 0 && Math.abs(deltaDown) < eps) return 1;
+    if (deltaDown > 0 && deltaTop > 0 && Math.abs(deltaLeft) < eps) return 2;
+
+    return undefined;
   }
 
   render() {
@@ -626,33 +690,48 @@ class SceneEditor extends Scene {
         renderer.ctx.globalCompositeOperation = "source-over";
       }
 
+      { //Grid
+        renderer.set("fill", "rgba(0, 0, 0, 0)");
+        renderer.set("stroke", "rgba(0, 0, 0, 0.5)");
+        let bounds = new Vec(
+          Math.max(Math.floor(cam.pos.x - cam.w / 2), 0),
+          Math.max(Math.floor(cam.pos.y - cam.w / 2 * cam.ar), 0),
+          Math.min(Math.floor(cam.pos.x + cam.w / 2 + 1), g.size.x),
+          Math.min(Math.floor(cam.pos.y + cam.w / 2 * cam.ar + 1), g.size.y),
+        );
+        let p = new Vec(0, 0);
+        for (p.x = bounds.x; p.x < bounds.z; p.x++) {
+          for (p.y = bounds.y; p.y < bounds.w; p.y++) {
+            renderer.rect(p, vecOne);      
+          }
+        }
+      }
       
-      renderer.set("fill", "rgba(0, 0, 0, 0)");
-      renderer.set("stroke", "rgba(0, 0, 0, 0.5)");
-      let bounds = new Vec(
-        Math.max(Math.floor(cam.pos.x - cam.w / 2), 0),
-        Math.max(Math.floor(cam.pos.y - cam.w / 2 * cam.ar), 0),
-        Math.min(Math.floor(cam.pos.x + cam.w / 2 + 1), g.size.x),
-        Math.min(Math.floor(cam.pos.y + cam.w / 2 * cam.ar + 1), g.size.y),
-      );
-      let p = new Vec(0, 0);
-      for (p.x = bounds.x; p.x < bounds.z; p.x++) {
-        for (p.y = bounds.y; p.y < bounds.w; p.y++) {
-          renderer.rect(p, vecOne);      
+      { //Outlines
+        renderer.set("stroke", "rgba(255, 255, 255, 1)");
+        function renderOutlines(ob) {
+          for (let c of ob.children) {
+            if (c.id > 2) renderer.rect(c.transform.pos._subV(c.transform.size._mul(0.5)), c.transform.size);
+            renderOutlines(c);
+          }
+        }
+        renderOutlines(world);
+
+        renderer.set("stroke", "rgba(255, 0, 0, 1)");
+        if (this.hovered) renderer.rect(this.hovered.transform.pos._subV(this.hovered.transform.size._mul(0.5)), this.hovered.transform.size);
+        else if (this.edge.hovered != undefined) {
+          renderer.line(
+            [new Vec(1, 0), new Vec(1, 1), new Vec(0, 1), new Vec(0, 0)][this.edge.hovered].mulV(g.size),
+            [new Vec(1, 1), new Vec(0, 1), new Vec(0, 0), new Vec(1, 0)][this.edge.hovered].mulV(g.size),
+          );
         }
       }
 
-      renderer.set("stroke", "rgba(255, 255, 255, 1)");
-      function renderOutlines(ob) {
-        for (let c of ob.children) {
-          if (c.id > 2) renderer.rect(c.transform.pos._subV(c.transform.size._mul(0.5)), c.transform.size);
-          renderOutlines(c);
-        }
-      }
-      renderOutlines(world);
+      let pos = new Vec(this.mousePos.x + 0.2, this.mousePos.y + 0.2);
+      let size = new Vec(0.4, 0.4);
+      renderer.image(nde.tex[this.selectedMat.tex], pos, size);
+      renderer.rect(pos, size);
 
-      renderer.set("stroke", "rgba(255, 0, 0, 1)");
-      if (this.hovered) renderer.rect(this.hovered.transform.pos._subV(this.hovered.transform.size._mul(0.5)), this.hovered.transform.size);
     });
     uicam._(renderer, () => {
       this.ui.renderUI();
