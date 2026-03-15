@@ -10,7 +10,7 @@ class Sky extends Component {
   }
 
   init() {
-    this.offset = Date.now();
+    this.startTime = Date.now();
   }
 
   start() {
@@ -20,14 +20,14 @@ class Sky extends Component {
   }
   
   update() {
-    let time = Date.now() - this.offset;
+    let time = Date.now() - this.startTime;
 
     this.day = ((time / 1000 / this.dayLengthS) + this.offsetDays);
-    this.hour = this.day % 1 * 24;
+    this.hour = this.day % 1 * 24;    
     
-    if (this.day - this.lastDay > settings.skyUpdateFreqH / 24) {
+    if (Math.abs(this.day - this.lastDay) > settings.skyUpdateFreqH / 24) {      
       this.lastDay = this.day;
-
+      
       let res = sunSimulation(this.day % 1);
       
       this.sky.angle = res.angle;
@@ -37,10 +37,20 @@ class Sky extends Component {
     }
   }
 
+  setDay(day) {
+    this.update();
+
+    let diff = day - this.day;
+    
+    this.offsetDays += diff;
+
+    this.update();
+  }
+
   from(data) {
     super.from(data);
 
-    this.offset = data.offset;
+    this.startTime = data.startTime;
     this.dayLengthS = data.dayLengthS;
     this.offsetDays = data.offsetDays;
 

@@ -69,6 +69,8 @@ class SceneEditor extends Scene {
           position: "absolute",
           pos: new Vec(uicam.size.x / 2, 0),
           selfPos: new Vec(-0.5, 0),
+          align: new Vec(1, 1),
+          gap: 5,
         },
 
         children: [
@@ -81,6 +83,22 @@ class SceneEditor extends Scene {
               this.renderLights = !this.renderLights;
               world.getComponents(Light).forEach(c => c.cached = false);
             }]}
+          }),
+          new UIText({
+            style: buttonStyle,
+            text: "Time",
+          }),
+          new UISettingRange({
+            style: buttonStyle,
+
+            min: 0,
+            max: 1.01,
+            step: 0.01,
+            value: 0.5,
+
+            events: {input: [e => {
+              world.getComponent(Sky).setDay(e);            
+            }]},
           }),
         ]
       }),
@@ -465,12 +483,16 @@ class SceneEditor extends Scene {
   loadWorld(w) {
     world = w.copy();
     this.cam.pos = world.getComponent(Grid).size._mul(0.5);
+
+    let oldSky = world.getComponent(Sky);
+    if (oldSky) world.removeComponent(oldSky);
+
     let sky = new Sky();
     world.addComponent(sky);
 
     sky.init();
     sky.start();
-    sky.update();
+    sky.update();    
   }
 
   start() {
