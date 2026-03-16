@@ -95,6 +95,19 @@ class Vec extends Serializable {
   set a(value) {
     this.w = value;
   }
+  
+  /**
+   * Takes the absolute value of each axis
+   * 
+   * @return {Vec} this
+   */
+  abs() {
+    if (this.x) this.x = Math.abs(this.x);
+    if (this.y) this.y = Math.abs(this.y);
+    if (this.z) this.z = Math.abs(this.z);
+    if (this.w) this.w = Math.abs(this.w);
+    return this;
+  }
 
   /**
    * Creates a copy of this vector

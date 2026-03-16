@@ -89,7 +89,7 @@ class Server extends ServerBase {
     let grid = new Grid({size: new Vec(20, 20)});
     let w = new Ob({name: "root"}, [
       grid,
-      new Sky({day: 0.7, dayLengthS: 240}),
+      new Sky({day: 0.7, dayLengthS: 5}),
       new PlayerStore(),
     ], [
       new Ob({name: "itemHolder", id: ITEMHOLDERID}),

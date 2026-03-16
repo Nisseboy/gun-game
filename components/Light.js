@@ -9,6 +9,7 @@ class Light extends Component {
     this.brightness = props.brightness || 1;
     this.smooth = (props.smooth != undefined) ? props.smooth : true;
 
+    this.pos = props.pos;
     this.size = props.size || 0;
     this.cull = (props.cull != undefined) ? props.cull : true;
 
@@ -21,9 +22,10 @@ class Light extends Component {
     lights.push(this);
 
     this.cached = false;
-    this.lastPos = this.transform.pos.copy();
-    this.lastDir = this.transform.dir;
-    this.lastMaxR = this.maxR;
+    
+    //this.lastPos = this.transform.pos.copy();
+    //this.lastDir = this.transform.dir;
+    //this.lastMaxR = this.maxR;
   }
   disable() {    
     let index = lights.indexOf(this);
@@ -114,7 +116,7 @@ function renderLights(cam) {
     lightTex.ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < lights.length; i++) {
       let light = lights[i];
-      let sqd = light.transform.pos._subV(cam.pos).sqMag();
+      let sqd = (light.pos || light.transform.pos)._subV(cam.pos).sqMag();
       if (light.cull && sqd > (light.maxR + cam.w / 2) ** 2) {
         light.mask = undefined;
         continue;
@@ -137,8 +139,7 @@ function renderLight(light) {
   let size = new Vec(light.maxR * 2, light.maxR * 2);
 
   lightTex.ctx.imageSmoothingEnabled = light.smooth;
-  let pos = light instanceof SkyLight ? world.getComponent(Grid).size._mul(0.5) : light.transform.pos;
-  lightTex.image(mask, pos._subV(size.mul(0.5)), size.mul(2));
+  lightTex.image(mask, (light.pos || light.transform.pos)._subV(size.mul(0.5)), size.mul(2));
 }
 
 

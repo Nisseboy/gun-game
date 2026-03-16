@@ -123,7 +123,7 @@ class Grid extends Component {
     let mapX = Math.floor(posx);
     let mapY = Math.floor(posy);
 
-    let mat;
+    let mat, insideGrid;
 
     /*
     mat = this.g[mapX + mapY * gridW];
@@ -172,7 +172,18 @@ class Grid extends Component {
         hitVertical = false;
       }
 
-      if (t >= maxDist || mapX < 0 || mapX >= gridW || mapY < 0 || mapY >= gridH) break;
+      if (t >= maxDist) break;
+
+      insideGrid = mapX >= 0 && mapX < gridW && mapY >= 0 && mapY < gridH;
+      if (!insideGrid) {
+        if (
+          mapX < 0 && dirx < 0 || 
+          mapY < 0 && diry < 0 || 
+          mapX >= gridW && dirx > 0 || 
+          mapY >= gridH && diry > 0
+        ) break;
+        continue;
+      }
 
       mat = this.g[mapX + mapY * gridW];
       if (materials[mat]?.[tag]) {

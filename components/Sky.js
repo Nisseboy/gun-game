@@ -1,4 +1,4 @@
-class Sky extends Component {
+/*class Sky extends Component {
   constructor(props = {}) {
     super();
 
@@ -56,7 +56,7 @@ class Sky extends Component {
 
     return this;
   }
-}
+}*/
 
 
 
@@ -64,66 +64,135 @@ class Sky extends Component {
 
 
 
-class SkyLight extends Light {
+class Sky extends Light {
   constructor(props = {}) {
     super(props);
-    
+
+    this.startTime;
+    this.dayLengthS = props.dayLengthS ?? 20;
+    this.offsetDays = props.day ?? 0.5;
+
     this.cellSize = props.cellSize ?? 10;
+    this.shadowMult = props.shadowMult ?? 0.5;
+
+    this.lastMaxR;
+    this.lastPos = new Vec();
+    this.pos = new Vec();
+    this.setMinBounds(new Vec(7.5, 7.5), 5);
+
+
+    this.lastAngle;
     this.angle = props.angle ?? Math.PI / 4;
+    this.lastLength;
     this.length = props.length ?? 1;
+    this.lastColor = new Vec();
+    this.color = props.color ?? new Vec(255, 255, 255);
 
-    this.color = new Vec(255, 255, 255);
-    this.shadowMult = 0.5;
 
-    this.smooth = true
+    this.day = 0;
+    this.hour = 0;
 
-    this.clientOnly = true;
+    this.cull = false;
+  }
+
+  init() {
+    this.startTime = Date.now();
   }
 
 
   start() {
-    super.start();
+    this.lastDay = -100;
+  }
 
-    let grid = world.getComponent(Grid);
-    let w = grid.size.x + 16;
-    this.maxR = w / 2;
+  update() {
+    let time = Date.now() - this.startTime;
+
+    this.day = ((time / 1000 / this.dayLengthS) + this.offsetDays);
+    this.hour = this.day % 1 * 24;    
+    
+    if (Math.abs(this.day - this.lastDay) > settings.skyUpdateFreqH / 24) {      
+      this.lastDay = this.day;
+      
+      let res = sunSimulation(this.day % 1);
+      
+      this.angle = res.angle;
+      this.length = res.length;
+      this.color.from(res.color);
+      this.cached = false;
+    }
+  }
+
+  setDay(day) {
+    this.update();
+
+    let diff = day - this.day;
+    
+    this.offsetDays += diff;
+
+    this.update();
+  }
+  setMinBounds(pos, r, roundingFactor = 2) {
+    let rf = Math.round(roundingFactor*0.5)*2;
+
+    let x1 = Math.floor((pos.x-r)/rf)*rf;
+    let y1 = Math.floor((pos.y-r)/rf)*rf;
+    let x2 = Math.ceil((pos.x+r)/rf)*rf;
+    let y2 = Math.ceil((pos.y+r)/rf)*rf;
+
+    this.pos.set((x1+x2)*0.5, (y1+y2)*0.5);
+    
+    let w = Math.max(x2 - x1, y2 - y1);
     this.size = w * this.cellSize;
-
+    this.maxR = w * 0.5;
   }
 
   renderMask() {    
     if (!this.mask) {
       this.cached = false;
-      this.mask = new Img(vecOne._mul(this.size));
+      this.mask = new Img(vecOne._mul(this.size));      
     }
     if (this.mask.size.x != this.size) {
       this.cached = false;
       this.mask.resize(vecOne._mul(this.size));
     }
+    if (!this.lastPos.isEqualTo(this.pos) || this.lastMaxR != this.maxR) {
+      this.cached = false;
+      this.lastPos.from(this.pos);
+      this.lastMaxR = this.maxR;
+    }
+    if (this.lastAngle != this.angle || this.lastLength != this.length || !this.lastColor.isEqualTo(this.color)) {
+      this.cached = false;
+      this.lastAngle = this.angle;
+      this.lastLength = this.length;
+      this.lastColor.from(this.color);
+    }
     
     if (this.cached) return this.mask;
+    this.cached = true;    
+    
+
 
     let ctx = this.mask.ctx;
-    let size = this.mask.size;
     let grid = world.getComponent(Grid);
+    let tl = this.pos._sub(this.maxR);
+    let br = this.pos._add(this.maxR);
     
+  
     ctx.getImageData(0, 0, this.size, this.size);
 
-    ctx.fillStyle = `rgb(${this.color.r}, ${this.color.b}, ${this.color.g})`;
-    ctx.fillRect(0, 0, size.x, size.y);
-    ctx.clearRect(8*this.cellSize, 8*this.cellSize, grid.size.x*this.cellSize, grid.size.y*this.cellSize);
+    ctx.clearRect(0, 0, this.size, this.size);
 
     let padding = 2;
     ctx.fillStyle = `rgb(${this.color.r * this.shadowMult}, ${this.color.b * this.shadowMult}, ${this.color.g * this.shadowMult})`;
     let mat;
     let openings = [];
-    for (let x = 0; x < grid.size.x; x++) {      
-      for (let y = 0; y < grid.size.y; y++) {
+    for (let x = tl.x; x < br.x; x++) {      
+      for (let y = tl.y; y < br.y; y++) {
         if (x >= 0 && x < grid.size.x && y >= 0 && y < grid.size.y) mat = materials[grid.g[x + y * grid.size.x]];        
         else mat = materials[0];
 
         if (mat.sky) {
-          ctx.fillRect((x+8) * this.cellSize - padding, (y+8) * this.cellSize - padding, this.cellSize + padding * 2, this.cellSize + padding * 2);
+          ctx.fillRect((x-tl.x) * this.cellSize - padding, (y-tl.y) * this.cellSize - padding, this.cellSize + padding * 2, this.cellSize + padding * 2);
           continue;
         }
         
@@ -136,8 +205,9 @@ class SkyLight extends Light {
       }
     }
 
+
     ctx.fillStyle = `rgb(${this.color.r}, ${this.color.b}, ${this.color.g})`;
-    let a = this.angle// + Math.PI;
+    let a = this.angle;
     let cos = Math.cos(a);
     let sin = Math.sin(a);
     let l = this.length;
@@ -147,26 +217,32 @@ class SkyLight extends Light {
     let res;
     let eps = 0.00001;
 
-    for (let X = -8; X < grid.size.x + 8; X++) {
-      for (let Y = -8; Y < grid.size.y + 8; Y++) {
-        if (X >= 0 && Y >= 0 && X < grid.size.x && Y < grid.size.y && materials[grid.g[X + Y * grid.size.x]]?.inside) continue;
+    let absDelta = new Vec(cos * l, sin * l).abs();
 
+    let tl2 = tl._subV(absDelta).floor();
+    let br2 = br._addV(absDelta).ceil();
+
+    
+    
+
+    for (let x = tl2.x; x < br2.x; x++) {      
+      for (let y = tl2.y; y < br2.y; y++) {
+        if (x >= 0 && x < grid.size.x && y >= 0 && y < grid.size.y && materials[grid.g[x + y * grid.size.x]].inside) continue;
+        
         if (!(
-          grid.raycastFast(X+eps, Y+eps, cos, sin, l, "opaque") || 
-          grid.raycastFast(X+1-eps, Y+eps, cos, sin, l, "opaque") || 
-          grid.raycastFast(X+1-eps, Y+1-eps, cos, sin, l, "opaque") || 
-          grid.raycastFast(X+eps, Y+1-eps, cos, sin, l, "opaque")
-        )) {
-          ctx.fillRect((X+8) * this.cellSize + Math.round(dx), (Y+8) * this.cellSize + Math.round(dy), this.cellSize, this.cellSize);
+          grid.raycastFast(x+eps, y+eps, cos, sin, l, "opaque") || 
+          grid.raycastFast(x+1-eps, y+eps, cos, sin, l, "opaque") || 
+          grid.raycastFast(x+1-eps, y+1-eps, cos, sin, l, "opaque") || 
+          grid.raycastFast(x+eps, y+1-eps, cos, sin, l, "opaque")
+        )) {          
+          ctx.fillRect((x-tl.x) * this.cellSize + Math.floor(dx), (y-tl.y) * this.cellSize + Math.floor(dy), this.cellSize, this.cellSize);
           continue;
         }
-        
 
-        
-        for (let x = 0; x < this.cellSize; x++) {      
-          for (let y = 0; y < this.cellSize; y++) {
-            res = grid.raycastFast(X + x * invCellSize, Y + y * invCellSize, cos, sin, l, "opaque");
-            if (!res) ctx.fillRect((X+8) * this.cellSize + x + Math.round(dx), (Y+8) * this.cellSize + y + Math.round(dy), 1, 1);            
+        for (let X = 0; X < this.cellSize; X++) {      
+          for (let Y = 0; Y < this.cellSize; Y++) {
+            res = grid.raycastFast(x + X * invCellSize, y + Y * invCellSize, cos, sin, l, "opaque");
+            if (!res) ctx.fillRect((x-tl.x) * this.cellSize + X + Math.floor(dx), (y-tl.y) * this.cellSize + Y + Math.floor(dy), 1, 1);            
           }
         }
       }
@@ -175,7 +251,7 @@ class SkyLight extends Light {
     ctx.globalCompositeOperation = "lighten";    
     for (let o of openings) {
       ctx.save();
-      ctx.translate((o.pos.x+8) * this.cellSize, (o.pos.y+8) * this.cellSize);
+      ctx.translate((o.pos.x-tl.x) * this.cellSize, (o.pos.y-tl.y) * this.cellSize);
       ctx.rotate(o.dir);
 
       
@@ -193,8 +269,24 @@ class SkyLight extends Light {
     ctx.globalCompositeOperation = "source-over";
 
 
-    this.cached = true;    
     return this.mask;
+  }
+
+
+  from(data) {
+    super.from(data);
+
+    this.startTime = data.startTime;
+    this.dayLengthS = data.dayLengthS;
+    this.offsetDays = data.offsetDays;
+    
+    this.cellSize = data.cellSize;
+    this.shadowMult = data.shadowMult;
+    this.angle = data.angle;
+    this.length = data.length;
+    this.color = new Vec().from(data.color);
+
+    return this;
   }
 }
 

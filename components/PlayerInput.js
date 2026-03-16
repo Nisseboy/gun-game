@@ -89,6 +89,12 @@ class PlayerInput extends Component {
       this.weaponUser.weapon = undefined;
     }
     
+
+    /*
+    let p = this.mousePos._sub(7.5);
+    world.getComponent(Sky).angle = Math.atan2(p.y, p.x);
+    world.getComponent(Sky).length = p.mag();
+    */
   }
 
   render() {

@@ -399,7 +399,7 @@ class SceneGame extends Scene {
       world.grid.cam = cam;
       world.render();
 
-      
+      world.getComponent(Sky).setMinBounds(cam.pos, cam.w*0.5);
       renderer.ctx.globalCompositeOperation = "multiply";
       renderLights(cam);
       renderer.ctx.globalCompositeOperation = "multiply";
