@@ -1,68 +1,3 @@
-/*class Sky extends Component {
-  constructor(props = {}) {
-    super();
-
-    this.dayLengthS = props.dayLengthS ?? 20;
-    this.offsetDays = props.day ?? 0.5;
-
-    this.day = 0;
-    this.hour = 0;
-  }
-
-  init() {
-    this.startTime = Date.now();
-  }
-
-  start() {
-    this.lastDay = -100;
-    this.sky = new SkyLight();
-    this.addComponent(this.sky);
-  }
-  
-  update() {
-    let time = Date.now() - this.startTime;
-
-    this.day = ((time / 1000 / this.dayLengthS) + this.offsetDays);
-    this.hour = this.day % 1 * 24;    
-    
-    if (Math.abs(this.day - this.lastDay) > settings.skyUpdateFreqH / 24) {      
-      this.lastDay = this.day;
-      
-      let res = sunSimulation(this.day % 1);
-      
-      this.sky.angle = res.angle;
-      this.sky.length = res.length;
-      this.sky.color.from(res.color);
-      this.sky.cached = false;
-    }
-  }
-
-  setDay(day) {
-    this.update();
-
-    let diff = day - this.day;
-    
-    this.offsetDays += diff;
-
-    this.update();
-  }
-
-  from(data) {
-    super.from(data);
-
-    this.startTime = data.startTime;
-    this.dayLengthS = data.dayLengthS;
-    this.offsetDays = data.offsetDays;
-
-    return this;
-  }
-}*/
-
-
-
-
-
-
 
 class Sky extends Light {
   constructor(props = {}) {
@@ -183,7 +118,8 @@ class Sky extends Light {
     ctx.clearRect(0, 0, this.size, this.size);
     ctx.imageSmoothing = false;
 
-    let padding = 2;
+    
+    let padding = 1;
     ctx.fillStyle = `rgb(${this.color.r * this.shadowMult}, ${this.color.b * this.shadowMult}, ${this.color.g * this.shadowMult})`;
     let mat;
     let openings = [];
@@ -207,6 +143,7 @@ class Sky extends Light {
     }
 
 
+    
     ctx.fillStyle = `rgb(${this.color.r}, ${this.color.b}, ${this.color.g})`;
     let cos = Math.cos(this.angle);
     let sin = Math.sin(this.angle);
@@ -248,26 +185,28 @@ class Sky extends Light {
         }
       }
     }
-    
+
+
+
     ctx.globalCompositeOperation = "lighten";    
+    
+    
     for (let o of openings) {
       ctx.save();
       ctx.translate((o.pos.x-tl.x) * this.cellSize, (o.pos.y-tl.y) * this.cellSize);
       ctx.rotate(o.dir);
-
       
-      let brightness;
-      for (let x = -padding; x < this.cellSize + padding; x++) {
-        for (let y = -padding; y < this.cellSize * 2 + padding; y++) {
-          brightness = (1 - y / (this.cellSize * 2)) * this.shadowMult;
-          ctx.fillStyle = `rgb(${this.color.r * brightness}, ${this.color.b * brightness}, ${this.color.g * brightness})`;
-          ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
-        }
-      }
+      let g = ctx.createLinearGradient(0, -padding, 0, this.cellSize * 2 + padding * 2);
+      g.addColorStop(0, `rgb(${this.color.r * this.shadowMult}, ${this.color.b * this.shadowMult}, ${this.color.g * this.shadowMult})`);
+      g.addColorStop(1, `rgb(0, 0, 0)`);
+
+      ctx.fillStyle = g;
+      ctx.fillRect(-padding, -padding, this.cellSize + padding * 2, this.cellSize * 2 + padding * 2);
 
       ctx.restore();
     }
     ctx.globalCompositeOperation = "source-over";
+
 
 
     return this.mask;
