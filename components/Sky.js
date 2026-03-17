@@ -181,6 +181,7 @@ class Sky extends Light {
     ctx.getImageData(0, 0, this.size, this.size);
 
     ctx.clearRect(0, 0, this.size, this.size);
+    ctx.imageSmoothing = false;
 
     let padding = 2;
     ctx.fillStyle = `rgb(${this.color.r * this.shadowMult}, ${this.color.b * this.shadowMult}, ${this.color.g * this.shadowMult})`;
@@ -207,12 +208,11 @@ class Sky extends Light {
 
 
     ctx.fillStyle = `rgb(${this.color.r}, ${this.color.b}, ${this.color.g})`;
-    let a = this.angle;
-    let cos = Math.cos(a);
-    let sin = Math.sin(a);
+    let cos = Math.cos(this.angle);
+    let sin = Math.sin(this.angle);
     let l = this.length;
-    let dx = cos * l * this.cellSize;
-    let dy = sin * l * this.cellSize;
+    let dx = Math.floor(cos * l * this.cellSize);
+    let dy = Math.floor(sin * l * this.cellSize);
     let invCellSize = 1 / this.cellSize;
     let res;
     let eps = 0.00001;
@@ -222,27 +222,28 @@ class Sky extends Light {
     let tl2 = tl._subV(absDelta).floor();
     let br2 = br._addV(absDelta).ceil();
 
-    
+    let a,b,c,d;
     
 
     for (let x = tl2.x; x < br2.x; x++) {      
       for (let y = tl2.y; y < br2.y; y++) {
         if (x >= 0 && x < grid.size.x && y >= 0 && y < grid.size.y && materials[grid.g[x + y * grid.size.x]].inside) continue;
         
-        if (!(
-          grid.raycastFast(x+eps, y+eps, cos, sin, l, "opaque") || 
-          grid.raycastFast(x+1-eps, y+eps, cos, sin, l, "opaque") || 
-          grid.raycastFast(x+1-eps, y+1-eps, cos, sin, l, "opaque") || 
-          grid.raycastFast(x+eps, y+1-eps, cos, sin, l, "opaque")
-        )) {          
-          ctx.fillRect((x-tl.x) * this.cellSize + Math.floor(dx), (y-tl.y) * this.cellSize + Math.floor(dy), this.cellSize, this.cellSize);
+        a = grid.raycastFast(x+eps, y+eps, cos, sin, l, "opaque");
+        b = grid.raycastFast(x+1-eps, y+eps, cos, sin, l, "opaque");
+        c = grid.raycastFast(x+1-eps, y+1-eps, cos, sin, l, "opaque");
+        d = grid.raycastFast(x+eps, y+1-eps, cos, sin, l, "opaque");
+
+        if (!(a||b||c||d)) {          
+          ctx.fillRect((x-tl.x) * this.cellSize + dx, (y-tl.y) * this.cellSize + dy, this.cellSize, this.cellSize);
           continue;
         }
+        if (a&&b&&c&&d) continue;
 
         for (let X = 0; X < this.cellSize; X++) {      
           for (let Y = 0; Y < this.cellSize; Y++) {
             res = grid.raycastFast(x + X * invCellSize, y + Y * invCellSize, cos, sin, l, "opaque");
-            if (!res) ctx.fillRect((x-tl.x) * this.cellSize + X + Math.floor(dx), (y-tl.y) * this.cellSize + Y + Math.floor(dy), 1, 1);            
+            if (!res) ctx.fillRect((x-tl.x) * this.cellSize + X + dx, (y-tl.y) * this.cellSize + Y + dy, 1, 1);            
           }
         }
       }
@@ -282,6 +283,7 @@ class Sky extends Light {
     
     this.cellSize = data.cellSize;
     this.shadowMult = data.shadowMult;
+
     this.angle = data.angle;
     this.length = data.length;
     this.color = new Vec().from(data.color);

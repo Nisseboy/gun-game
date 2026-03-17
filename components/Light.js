@@ -89,6 +89,8 @@ class Light extends Component {
     this.brightness = data.brightness;
     this.smooth = data.smooth;
 
+    if (data.pos) this.pos = new Vec().from(data.pos); 
+
     this.size = data.size;
     this.cull = data.cull;
 
