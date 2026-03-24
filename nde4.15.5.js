@@ -95,19 +95,6 @@ class Vec extends Serializable {
   set a(value) {
     this.w = value;
   }
-  
-  /**
-   * Takes the absolute value of each axis
-   * 
-   * @return {Vec} this
-   */
-  abs() {
-    if (this.x) this.x = Math.abs(this.x);
-    if (this.y) this.y = Math.abs(this.y);
-    if (this.z) this.z = Math.abs(this.z);
-    if (this.w) this.w = Math.abs(this.w);
-    return this;
-  }
 
   /**
    * Creates a copy of this vector
@@ -307,6 +294,19 @@ class Vec extends Serializable {
     if (this.w) this.w = Math.round(this.w);
     return this;
   }
+  
+  /**
+   * Takes the absolute value of each axis
+   * 
+   * @return {Vec} this
+   */
+  abs() {
+    if (this.x) this.x = Math.abs(this.x);
+    if (this.y) this.y = Math.abs(this.y);
+    if (this.z) this.z = Math.abs(this.z);
+    if (this.w) this.w = Math.abs(this.w);
+    return this;
+  }
 
   /**
    * Adds each axis of this vector by val
@@ -456,6 +456,7 @@ class Vec extends Serializable {
   _floor() {return this.copy().floor()}
   _ceil() {return this.copy().ceil()}
   _round() {return this.copy().round()}
+  _abs() {return this.copy().abs()}
 
   _normalize() {return this.copy().normalize()}
 
@@ -756,6 +757,16 @@ class Scene {
  * @param {WheelEvent} e
  */
   wheel(e) {}
+
+/**
+ * @param {UIBase} uiElement
+ */
+  mouseenter(uiElement) {}
+/**
+ * @param {UIBase} uiElement
+ */
+  mouseleave(uiElement) {}
+  
  
 /**
  * Update scene here, called every frame
@@ -1812,6 +1823,7 @@ class UIBase {
     if (props.events) this.e.events = props.events;
 
     this.interactable = false;
+    this.bubbles = true;
     
     this.hovered = false;
     this.trueHovered = false;
@@ -1829,7 +1841,11 @@ class UIBase {
 
   on(...args) {return this.e.on(...args)}
   off(...args) {return this.e.off(...args)}
-  fire(...args) {return this.e.fire(...args)}
+  fire(...args) {
+    let res = this.e.fire(...args);
+    if (res != false && this.bubbles) this.parent?.fire(...args);
+    return res;
+  }
 
 
   fillStyle(style) {
@@ -2514,6 +2530,7 @@ class UISettingBase extends UIBase {
   constructor(props) {
     super(props);
     this.interactable = true;
+    this.bubbles = false;
 
     this.value = props.value;
     this.focused = false;
@@ -2819,8 +2836,10 @@ class UISettingDropdown extends UISettingBase {
     this.updateColors();
   }
 
-  switchOpen() {
-    if (this.children[0].style.render == "hidden") {
+  switchOpen(state) {
+    state = state ?? this.children[0].style.render == "normal";
+
+    if (!state) {
       this.children[0].style.render = "normal";
       this.children[1].style.render = "hidden";
     } else {
@@ -4425,7 +4444,7 @@ class Ob extends Serializable {
   }
   getComponents(type, limit = 9999, arr = []) {
     let comp = this.components.find(e=>{return e instanceof type});
-    if (comp) arr.push(comp);    
+    if (comp) arr.push(comp);
 
     for (let i = 0; i < this.children.length; i++) {
       if (arr.length == limit) return arr;
@@ -4988,7 +5007,6 @@ class NDE {
     }
   }
 
-
   on(...args) {return this.e.on(...args)}
   off(...args) {return this.e.off(...args)}
   fire(eventName, ...args) {
@@ -5108,11 +5126,21 @@ class NDE {
 
       let t2 = performance.now();
     
+      let lastHoveredUIElement = this.hoveredUIElement;
       this.hoveredUIElement = undefined;
       this.hoveredUIRoot = undefined;
       this.fire("render");
       if (this.transition) this.transition.render();
       this.fire("afterRender");
+
+      if (lastHoveredUIElement != this.hoveredUIElement) {
+        lastHoveredUIElement?.fire("mouseleave");
+        this.fire("mouseleave", lastHoveredUIElement);
+
+        if (this.hoveredUIElement?.fire("mouseenter") != false) {
+          this.fire("mouseenter", this.hoveredUIElement);
+        }
+      }
 
 
       this.pressedFrame.length = 0;

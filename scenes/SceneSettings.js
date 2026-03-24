@@ -83,7 +83,7 @@ class SceneSettings extends Scene {
 
           new UISettingRange({
             name: "skyUpdateFreqH", displayName: "Sky Update Frequency (hours)",
-            value: 0.5,
+            value: 0.1,
             min: 0, max: 4.1, step: 0.1,
 
             style: {...rangeStyle,},

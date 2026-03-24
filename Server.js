@@ -95,7 +95,7 @@ class Server extends ServerBase {
       new Ob({name: "itemHolder", id: ITEMHOLDERID}),
     ]);
 
-    grid.placeRoom(allRooms[1], new Vec(5, 5));
+    grid.placeRoom(allRooms[0], new Vec(5, 5));
     grid.fenceOff();
 
     

@@ -42,6 +42,41 @@ class SceneEditor extends Scene {
   }
 
   initializeUI() {
+    let matDropups = new UIBase({
+      style: {
+        position: "absolute",
+        pos: new Vec(0, uicam.size.y),
+        selfPos: new Vec(0, -1),
+      }
+    });
+    for (let i in materialGroups) {
+      let g = materialGroups[i];
+
+      let elem = new UISettingDropdown({
+        style: {...buttonStyle,},
+
+        value: i,
+        choices: [...g.map(e=>e.name), i],
+
+        events: {change: [value => {
+          elem.setValue(i);
+          
+          let mat = g.find(e=>e.name==value);
+          if (!mat) return;
+
+          this.selectedMatIndex = materials.indexOf(mat);
+          elem.switchOpen(true);
+        }],},
+      });
+      elem.container.style.selfPos = new Vec(0, -1);
+      for (let e of elem.container.children) {
+        e.style.selfPos = new Vec(0, 1);
+      }
+      elem.switchOpen(true);
+
+      matDropups.children.push(elem);
+    }
+
     this.uiProperties = undefined;
     this.uiPropertiesOb = undefined;
 
@@ -81,7 +116,6 @@ class SceneEditor extends Scene {
 
             events: {mouseup: [() => {
               this.renderLights = !this.renderLights;
-              world.getComponents(Light).forEach(c => c.cached = false);
             }]}
           }),
           new UIText({
@@ -102,6 +136,7 @@ class SceneEditor extends Scene {
           }),
         ]
       }),
+      matDropups,
     ]);  
   }
 
@@ -707,6 +742,7 @@ class SceneEditor extends Scene {
 
       if (this.renderLights) {
         this.findLights();      
+        world.getComponent(Sky).setMinBounds(cam.pos, cam.w*0.5);
         renderer.ctx.globalCompositeOperation = "multiply";
         renderLights(cam);
         renderer.ctx.globalCompositeOperation = "source-over";
@@ -749,10 +785,28 @@ class SceneEditor extends Scene {
         }
       }
 
-      let pos = new Vec(this.mousePos.x + 0.2, this.mousePos.y + 0.2);
-      let size = new Vec(0.4, 0.4);
-      renderer.image(nde.tex[this.selectedMat.tex], pos, size);
-      renderer.rect(pos, size);
+      { //Held Mat
+        let size = new Vec(0.4, 0.4);
+        let pos = new Vec(this.mousePos.x - 0.2 - size.x, this.mousePos.y + 0.2);
+
+        renderer.set("fill", "rgb(255,255,255, 0)");
+        renderer.image(nde.tex[this.selectedMat.tex], pos, size);
+        renderer.rect(pos, size);
+
+        pos.y += size.y;
+
+        renderer.set("font", "0.16px monospace");
+        renderer.set("fill", "rgb(255,255,255)");
+        renderer.text(this.selectedMat.name, pos);
+      }
+
+      { //Tooltip
+        let pos = new Vec(this.mousePos.x + 0.1, this.mousePos.y);
+        let text = this.hovered?.name;      
+        if (!text) text = materials[g.getMat(this.mousePos)]?.name || "";  
+        
+        renderer.text(text, pos);
+      }
 
     });
     uicam._(renderer, () => {
@@ -769,6 +823,7 @@ class SceneEditor extends Scene {
     let comps = world.getComponents(Light);
     for (let c of comps) {      
       if (!c.hasStarted) c.start();
+      c.cached = false;
       c.renderMask();
       lights.push(c);
     }

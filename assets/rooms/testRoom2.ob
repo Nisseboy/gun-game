@@ -1,2 +1,0 @@
-(()=>{return cloneData('{"type":"Ob","name":"root","children":[],"id":1,"active":true,"components":[{"type":"Transform","clientOnly":false,"pos":{"type":"Vec","x":0,"y":0},"dir":0,"size":{"type":"Vec","x":1,"y":1}}],"id":5185,"active":true,"components":[{"type":"Transform","clientOnly":false,"pos":{"type":"Vec","x":0,"y":0},"dir":0,"size":{"type":"Vec","x":1,"y":1}},{"type":"Grid","clientOnly":false,"size":{"type":"Vec","x":5,"y":5},"g":[1,1,2,1,1,1,2,2,2,1,2,2,2,2,2,1,2,2,2,1,1,1,2,1,1]}]}');})();
-
