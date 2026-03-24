@@ -16,8 +16,6 @@ class SceneEditor extends Scene {
     this.cam.w = 16;
     this.cam.renderW = nde.w;
 
-    this.initializeUI();
-
     this.selectedMatIndex = 0;
 
     this.hovered = undefined;
@@ -531,6 +529,8 @@ class SceneEditor extends Scene {
   }
 
   start() {
+    this.initializeUI();
+
     this.loadWorld(allRooms[0]);
 
     if (!world) {
