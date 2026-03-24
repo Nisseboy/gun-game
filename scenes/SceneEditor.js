@@ -830,6 +830,7 @@ class SceneEditor extends Scene {
   }
 
   export() {
+    world.getComponent(Grid).mapMaterials();
     return `(()=>{return cloneData('${world.serialize()}');})();`;
   }
 }

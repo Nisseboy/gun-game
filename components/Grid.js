@@ -23,6 +23,8 @@ class Grid extends Component {
     this.size = props.size || vecOne;
     this.g = props.g || new Array(this.size.x * this.size.y).fill(0);
     this.cam = undefined;
+
+    this.mappedMaterials = [];
   }
 
   start() {
@@ -245,6 +247,25 @@ class Grid extends Component {
     return (v.x >= 0 && v.x < this.size.x && v.y >= 0 && v.y < this.size.y);
   }
 
+  mapMaterials() {
+    this.mappedMaterials.length = 0;
+    
+    for (let i = 0; i < this.g.length; i++) {
+      this.mappedMaterials[this.g[i]] = materials[this.g[i]].fullName;
+    }
+  }
+  unmapMaterials() {
+    if (this.mappedMaterials.length == 0) return;
+
+    let mats = this.mappedMaterials.map(e=>materials.findIndex(ee=>ee.fullName==e));
+    
+    for (let i = 0; i < this.g.length; i++) {
+      this.g[i] = mats[this.g[i]];
+    }
+    
+    this.mappedMaterials.length = 0;
+  }
+
 
   moveEdge(edge, dir) {
     let x = edge % 2 == 0;
@@ -293,7 +314,8 @@ class Grid extends Component {
     super.from(data);
 
     this.size = new Vec().from(data.size);
-    this.g = data.g;
+    this.g = data.g;    
+    this.mappedMaterials = data.mappedMaterials;
 
     return this;
   }
@@ -314,5 +336,6 @@ function processRooms() {
     let room = nde.assets[assetName];
     room.name = split.join("/");
     allRooms.push(room);
+    room.getComponent(Grid).unmapMaterials();
   }
 }

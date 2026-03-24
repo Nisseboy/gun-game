@@ -23,6 +23,7 @@ class Material {
 
     this.group = type;
     this.name = split.join("/");
+    this.fullName = tex;
 
     this.hp = props.hp;
 

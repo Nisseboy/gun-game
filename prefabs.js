@@ -136,10 +136,16 @@ let prefabs = {
 
 let materials = [
   new Material("ground/grass"),
-  new Material("wall/stone"),
-  new Material("floor/stone"),
-  new Material("window/stonebars"),
+
   new Material("fence/chain"),
+
+
+  
+  new Material("floor/stone"),
+
+  new Material("wall/stone"),
+
+  new Material("window/stonebars"),
 ];
 
 
