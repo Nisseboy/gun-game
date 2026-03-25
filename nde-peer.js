@@ -13,12 +13,13 @@ let peer = new Peer(peerIdPrefix + peerId, {debug:1});
 
 
 function initClient() {
+  
   if (serverId) {    
     if (serverId[0] == "_") {
       if (serverId == "_host") {
+        id = 0;
         client = new ClientHost();
         server = new Server(peerId);
-        id = 0;
       }
 
       return;
@@ -118,6 +119,13 @@ class ClientBase extends NetworkingBase {
     });
   }
 
+  init() {
+    this.send("mult", [
+      ["customization", id, customization],
+      ["join"],
+    ]);
+  }
+
   send(channel, ...data) {}
 
   sendOthers(channel, ...data) {this.sendOthers(channel, ...data)}
@@ -146,8 +154,6 @@ class ClientBase extends NetworkingBase {
 class ClientHost extends ClientBase {
   constructor() {
     super();
-
-    this.init();
   }
 
   send(channel, ...data) {
@@ -211,9 +217,9 @@ class ServerBase extends NetworkingBase {
     this.lastUpdateDuration = 0;
 
     if (peer.open) {
-      this.init();
+      this._init();
     } else {
-      peer.on("open", () => {this.init()});
+      peer.on("open", () => {this._init()});
     }
 
     setInterval(() => {
@@ -230,7 +236,7 @@ class ServerBase extends NetworkingBase {
     }, updateInterval);
   }
 
-  init() {    
+  _init() {
     setDevServer(this.id);
 
     peer.on("connection", conn => {      
@@ -290,8 +296,14 @@ class ServerBase extends NetworkingBase {
         this.fire(r[0], senderId, ...r.splice(1, 1000));
       }
     });
+
+    this.init();
+    setTimeout(() => {
+      client.init();
+    }, 0);
   }
 
+  init() {}
   update(dt) {}
 
   send(id, channel, ...data) {    

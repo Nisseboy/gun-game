@@ -12,6 +12,8 @@ for (let asset of assetPaths) {
 let settingsName = "gunGameSettings";
 let settings = JSON.parse(localStorage.getItem(settingsName)) || {};
 
+let customization = JSON.parse(localStorage.getItem(settingsName + "-customization")) || {};
+
 
 let scenes = {};
 

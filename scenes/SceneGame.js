@@ -94,7 +94,7 @@ class SceneGame extends Scene {
   }
 
   setupListeners() {    
-    client.on("world", world => {    
+    client.on("world", world => {          
       if (world) this.loadWorld(cloneData(world));
     });
 
@@ -119,6 +119,12 @@ class SceneGame extends Scene {
       for (let id in table) {
         delete idLookup[id];
       }  
+    });
+    client.on("customization", (id, c) => {      
+      let entity = idLookup[id];      
+
+      entity.name = c.name || entity.id;
+       
     });
     client.on("changeId", (oldId, newId) => {      
       let e = idLookup[oldId];
@@ -193,7 +199,7 @@ class SceneGame extends Scene {
 
     //Position entity smoothly
     client.on("p", (entityId, pos, dir) => {                 
-      let e = idLookup[entityId];      
+      let e = idLookup?.[entityId];      
       if (!e) return;
 
       let diffPos = new Vec().from(pos).subV(e.transform.pos).mul(1000/updateInterval);
@@ -262,7 +268,7 @@ class SceneGame extends Scene {
       e.fire(eventName, ...args);
     });
   }
-  loadWorld(w) {        
+  loadWorld(w) {            
     world = w;
     if (id != 0) world.stripClientComponents();
 

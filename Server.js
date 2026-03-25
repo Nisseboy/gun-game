@@ -5,19 +5,8 @@ const ITEMHOLDERID = 1;
 
 class Server extends ServerBase {
   init() {
-    super.init();
-
-    setTimeout(()=>{
-      scenes.game.loadWorld(this.createWorld());
-      client.fire("world");
-    }, 0);
-
     this.on("connection", (id, conn) => {      
       this.fire("createEntity", id, world.getComponent(PlayerStore).get(id).serialize(), world.id);
-      let w = world.copy();
-      w.stripClientComponents();
-      this.send(id, "world", w.serialize());      
-      this.sendAll("sendChat", undefined, id + " connected.");      
     });
     this.on("disconnection", (id, conn) => {
       world.getComponent(PlayerStore).store(idLookup[id]);
@@ -26,6 +15,18 @@ class Server extends ServerBase {
         ["sendChat", undefined, id + " disconnected."],
         ["removeEntity", id],
       ]);
+    });
+    this.on("join", (id) => {
+      if (id == 0) {
+        this.send(0, "world");        
+        this.send(0, "customization", 0, customization);        
+        return;
+      }
+
+      let w = world.copy();
+      w.stripClientComponents();
+      this.send(id, "world", w.serialize());      
+      this.sendAll("sendChat", undefined, idLookup[id].name + " connected.");      
     });
     this.on("ping", (id) => {      
       this.send(id, "ping");
@@ -81,11 +82,14 @@ class Server extends ServerBase {
     })
 
 
-
-
     this.on("*", (eventName, senderId, ...args) => {
       this.sendOthers(senderId, eventName, ...args);
     });
+
+
+    setTimeout(() => {
+      scenes.game.loadWorld(this.createWorld());
+    }, 0);
   }
 
   //Runs on updateInterval

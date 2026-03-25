@@ -11,6 +11,8 @@ class SceneMainMenu extends Scene {
 
       text: "No Lobby",
     });
+
+    this.start(); //Initialize settings
   }
 
   start() {
@@ -92,6 +94,48 @@ class SceneMainMenu extends Scene {
         events: {mousedown: [() => {
           nde.transition = new TransitionSlide(scenes.settings, new TimerTime(0.2));
         }]},
+      }),
+
+
+      
+      new UISettingCollection({
+        value: customization,
+        hasLabels: true,
+
+        style: {
+          gap: 10,
+
+          position: "absolute",
+          pos: new Vec(uicam.size.x - 45, 45),
+          selfPos: new Vec(-1, 0),
+          padding: 5,
+
+          fill: "rgba(255, 255, 255, 0.05)",
+
+          row: {gap: 10},
+          label: {...buttonStyle,},
+        },
+
+        children: [
+          new UISettingText({
+            name: "name", displayName: "Name",
+            style: {...buttonStyle,
+              minSize: new Vec(200, 0),
+              editor: {
+                multiLine: false,
+              }
+            },
+
+            value: "",
+          }),
+        ],
+
+        events: {
+          change: [function (value) {
+            localStorage.setItem(settingsName+"-customization", JSON.stringify(customization));  
+            client?.send("customization", id, customization);        
+          }],
+        },
       }),
     ]);     
   }
