@@ -67,8 +67,8 @@ nde.on("afterSetup", () => {
 
   processPrefabs();
   processGunSprites();
-  processRooms();
   processMaterials();
+  processRooms();
   
   initClient();
   scenes.mainMenu.lobbyDisplay.text = serverId;

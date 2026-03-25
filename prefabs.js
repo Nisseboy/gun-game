@@ -142,6 +142,7 @@ let materials = [
 
   
   new Material("floor/stone"),
+  new Material("floor/stonebanana", {slip: 1}),
 
   new Material("wall/stone"),
   new Material("wall/wood", {hp: 100}),

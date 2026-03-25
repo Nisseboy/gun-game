@@ -36,7 +36,7 @@ class PlayerInput extends Component {
     this.duck.move(new Vec(
       nde.getKeyPressed("Move Right") - nde.getKeyPressed("Move Left"),
       nde.getKeyPressed("Move Down") - nde.getKeyPressed("Move Up"),
-    ).normalize().mul(this.speed * speedMult * dt));
+    ).normalize().mul(this.speed * speedMult), dt);
 
     this.closestInteractable = undefined;
     let closestSqd = 1000;

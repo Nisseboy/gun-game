@@ -1600,7 +1600,6 @@ class RunningAnimation extends Renderable {
   }
 
   step() {    
-    
     this.elapsedTime += (this.timer.elapsedTime - this.lastTimerElapsedTime) * this.speed;
     this.lastTimerElapsedTime = this.timer.elapsedTime;
 

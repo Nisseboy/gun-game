@@ -25,6 +25,8 @@ class Material {
     this.name = split.join("/");
     this.fullName = tex;
 
+    this.slip = props.slip ?? 0;
+
     if (props.hp || props.components) {
       this.components = [new EntityTile({hp: props.hp ?? Infinity})];
 

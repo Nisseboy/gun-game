@@ -6,12 +6,21 @@ class Duck extends Component {
   start() {
     this.lastPos = new Vec(0, 0);
     this.vel = new Vec(0, 0);
+
+    this.movedThisFrame = false;
+    this.lastMove = new Vec(0, 0);
+    this.gridIndex = undefined;
+    
+    this.slipTimer = undefined;
     
     this.sprite = this.getComponent(Sprite);
 
     this.sprite.tex = new StateMachineImg(
       new StateMachineNodeCondition(()=>{return (this.vel.x != 0 || this.vel.y != 0)}, 
-        new StateMachineNodeResult(nde.tex["duck/walk"]),
+        new StateMachineNodeCondition(()=>{return this.slipTimer != undefined}, 
+          new StateMachineNodeResult(nde.tex["duck/slip"]),
+          new StateMachineNodeResult(nde.tex["duck/walk"]),
+        ),
         new StateMachineNodeResult(nde.tex["duck/1"]),
       )
     );
@@ -33,24 +42,50 @@ class Duck extends Component {
       let diff = getDeltaAngle((Math.atan2(this.vel.y, this.vel.x)), this.transform.dir);
       this.transform.dir -= diff * 20 * dt;
     }      
+
+    this.movedThisFrame = false;
+    if (this.slipTimer) {
+      this.move(this.lastMove, dt);
+      this.lastMove.mul(0.95);
+    }
   }
 
-  move(v) {  
+  move(v, dt) {  
+    if (this.movedThisFrame) return;
+    this.lastMove.from(v);
+
+    let grid = world.getComponent(Grid);
     let eps = 0.0001;
 
     if (v.x) {
       let dir = Math.sign(v.x);
-      let res = world.grid.raycastFast(this.transform.pos.x - dir * eps, this.transform.pos.y, dir, 0, v.x * dir);
+      let res = grid.raycastFast(this.transform.pos.x - dir * eps, this.transform.pos.y, dir, 0, v.x * dt * dir);
       
       
-      this.transform.pos.x += (res ? dir * (res.d - eps * 2) : v.x);
+      this.transform.pos.x += (res ? dir * (res.d - eps * 2) : v.x * dt);
     }
     if (v.y) {
       let dir = Math.sign(v.y);
-      let res = world.grid.raycastFast(this.transform.pos.x, this.transform.pos.y - dir * eps, 0, dir, v.y * dir);
+      let res = grid.raycastFast(this.transform.pos.x, this.transform.pos.y - dir * eps, 0, dir, v.y * dt * dir);
       
-      this.transform.pos.y += (res ? dir * (res.d - eps * 2) : v.y);
+      this.transform.pos.y += (res ? dir * (res.d - eps * 2) : v.y * dt);
     }
+    if (v.x || v.y) this.movedThisFrame = true;
+
+    let lastGridIndex = this.gridIndex;
+    this.gridIndex = Math.floor(this.transform.pos.x) + Math.floor(this.transform.pos.y) * grid.size.x;
+    if (lastGridIndex != this.gridIndex) {
+      let mat = materials[grid.g[this.gridIndex]];
+      if (Math.random() < mat.slip) {
+        this.slip();
+      }
+    }
+  }
+
+  slip() {
+    this.slipTimer = new TimerTime(0.5, () => {
+      if (this.slipTimer.progress == 1) this.slipTimer = undefined;
+    });
   }
 
   remove() {
