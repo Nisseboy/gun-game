@@ -25,14 +25,22 @@ class Material {
     this.name = split.join("/");
     this.fullName = tex;
 
-    this.hp = props.hp;
+    if (props.hp || props.components) {
+      this.components = [new EntityTile({hp: props.hp ?? Infinity})];
+
+      if (props.components) {
+        this.components.push(...props.components);
+      }
+    }
 
     if (!materialGroups[type]) materialGroups[type] = [];
     materialGroups[type].push(this);
   }
 }
 
-
+function getMaterialId(name) {
+  return materials.findIndex(e=>e.fullName == name);
+}
 
 function processMaterials() {
   for (let texName in nde.tex) {

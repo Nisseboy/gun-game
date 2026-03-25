@@ -144,6 +144,7 @@ let materials = [
   new Material("floor/stone"),
 
   new Material("wall/stone"),
+  new Material("wall/wood", {hp: 100}),
 
   new Material("window/stonebars"),
 ];

@@ -43,26 +43,37 @@ class Server extends ServerBase {
     this.on("changeHp", (id, entityId, hp) => {
       let entity = idLookup[entityId];
       if (!entity) return;
+      let _entity = entity.getComponent(Entity);      
+      let info = entity.getComponent(Prefab)?.info;
 
-      if (entity.getComponent(Entity).hp + hp <= 0) {
-        let inventory = entity.getComponent(Inventory);
-        inventory.startIndex = 0;
-        inventory.stopIndex = 1000;
 
-        let ob = new Ob({name: "Dead " + entity.name}, [
-          entity.transform.copy(),
-          new Sprite("duck/dead"),
-          inventory,
-          new Interactable(),
-        ]);
+      if (_entity.hp + hp <= 0) {
+        let sends = [];
 
-        this.sendAll("mult", [
-          ["createEntity", ob.serialize(), itemHolder.id],
-          ["moveChildren", entity.id, ob.id],
-          ["removeEntity", entity.id],
-          ["sendChat", entity.id, entity.name + " died."],
-        ]);
+        if (info?.deadTex) {
+          let ob = new Ob({name: "Dead " + entity.name}, [
+            entity.transform.copy(),
+            new Sprite("duck/dead"),
+          ]);
 
+          let inventory = entity.getComponent(Inventory);
+          if (inventory) {
+            inventory.startIndex = 0;
+            inventory.stopIndex = 1000;
+
+            ob.addComponent(inventory, new Interactable());
+          }
+          sends.push(
+          ["createEntity", ob.serialize(), itemHolder.id], 
+          ["moveChildren", entity.id, ob.id],)
+        }
+        
+        
+       sends.push(["removeEntity", entity.id]
+        );
+        if (entity.getComponent(Duck)) sends.push(["sendChat", entity.id, entity.name + " died."]);
+
+        this.sendAll("mult", sends);
         this.send(entityId, "startRespawnTimer");
       } else {
         this.sendAll("changeHp", entityId, hp);

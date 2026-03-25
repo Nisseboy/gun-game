@@ -24,6 +24,8 @@ class Grid extends Component {
     this.g = props.g || new Array(this.size.x * this.size.y).fill(0);
     this.cam = undefined;
 
+    this.tileEntities = {};
+
     this.mappedMaterials = [];
   }
 
@@ -90,30 +92,63 @@ class Grid extends Component {
     let g = grid2.g;
     let size = grid2.size;
 
+    let i, thisI, mat;
+
     for (let x = 0; x < size.x; x++) {
       for (let y = 0; y < size.y; y++) {
-        let i = x + y * size.x;
-        let thisI = pos.x + x + (pos.y + y) * this.size.x;
+        i = x + y * size.x;
+        thisI = pos.x + x + (pos.y + y) * this.size.x;
 
         this.g[thisI] = g[i];
+
+        mat = materials[g[i]]
+        if (mat.components) {
+          this.placeEntityTile(mat, new Vec(pos.x + x, pos.y + y));
+        }
       }
     }
 
-    let itemHolder = this.ob.findId(ITEMHOLDERID);
     for (let i = 0; i < room.children.length; i++) {
       let c = room.children[i].copy();
       c.getComponent(Transform).pos.addV(pos);
       c.randomizeId();
       
-      itemHolder.appendChild(c);
+      this.ob.children[0].appendChild(c);
     }
   }
+  placeEntityTile(mat, pos) {
+    pos = pos._floor();
+    let i = pos.x + pos.y * this.size.x;
+    let ob = new Ob({pos: pos.add(0.5), name: mat.fullName}, mat.components.map(e=>e.copy()));
+    this.ob.children[0].appendChild(ob);
+
+    this.tileEntities[i] = ob.id;
+  }
+  removeEntityTile(pos) {
+    pos = pos._floor();
+    let i = pos.x + pos.y * this.size.x;
+
+    this.g[i] = 0;
+    let ob = idLookup[this.tileEntities[i]];
+    delete this.tileEntities[i];    
+  }
   fenceOff() {
+    let id = getMaterialId("fence/chain");
     for (let x = 0; x < this.size.x; x++) {
       for (let y = 0; y < this.size.y; y++) {
-        if (x == 0 || y == 0 || x == this.size.x - 1 || y == this.size.y - 1) this.g[x + y * this.size.x] = 4;
+        if (x == 0 || y == 0 || x == this.size.x - 1 || y == this.size.y - 1) this.g[x + y * this.size.x] = id;
       }
     }
+  }
+
+  updateLights(pos, d = 1) {
+    let p, sqd;
+    lights.forEach(light => {
+      p = light.pos ?? light.transform.pos;
+      sqd = (pos.x - p.x) ** 2 + (pos.y - p.y) ** 2;
+
+      if (sqd < Math.max(light.maxR - d, 0) ** 2) light.cached = false;    
+    });
   }
 
   raycast(pos, dirVec, maxDist, tag) {return this.raycastFast(pos.x, pos.y, dirVec.x, dirVec.y, maxDist, tag)}
@@ -125,7 +160,7 @@ class Grid extends Component {
     let mapX = Math.floor(posx);
     let mapY = Math.floor(posy);
 
-    let mat, insideGrid;
+    let mat, insideGrid, j;
 
     /*
     mat = this.g[mapX + mapY * gridW];
@@ -187,11 +222,13 @@ class Grid extends Component {
         continue;
       }
 
-      mat = this.g[mapX + mapY * gridW];
+      j = mapX + mapY * gridW;
+      mat = this.g[j];
       if (materials[mat]?.[tag]) {
         return {
           x: posx + dirx * t,
           y: posy + diry * t,
+          i: j,
           d: t,
           isHor: !hitVertical,
           mat: mat,
@@ -315,6 +352,8 @@ class Grid extends Component {
 
     this.size = new Vec().from(data.size);
     this.g = data.g;    
+    this.tileEntities = data.tileEntities;
+
     this.mappedMaterials = data.mappedMaterials;
 
     return this;

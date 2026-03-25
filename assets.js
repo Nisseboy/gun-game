@@ -36,6 +36,7 @@ let assetPaths = [
   {"path":"material/floor/stonedrain.png"},
   {"path":"material/fence/chain.png"},
   {"path":"material/window/stonebars.png"},
-  {"path":"rooms/testRoom.ob"}
+  {"path":"rooms/testRoom.ob"},
+  {"path":"material/wall/wood.png"}
 ];
 let scenePaths = ["SceneEditor","SceneGame","SceneMainMenu","SceneSettings"];

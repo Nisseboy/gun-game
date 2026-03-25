@@ -4,8 +4,8 @@ class Entity extends Component {
   constructor(props = {}) {
     super();
 
-    this.hp = props.hp || 100;
-    this.nametag = props.nametag || false;
+    this.hp = props.hp ?? 100;
+    this.nametag = props.nametag ?? false;
   }
 
   start() {
@@ -13,7 +13,7 @@ class Entity extends Component {
   }
 
   render() {    
-    if (this.ob.id == id) return;
+    if (this.ob.id == id || !this.nametag) return;
     renderer.set("font", "0.2px monospace");
     renderer.set("textAlign", [1, 2]);
     renderer.text(this.ob.name, new Vec(this.transform.pos.x, this.transform.pos.y - this.transform.size.y * 0.5));
@@ -23,7 +23,7 @@ class Entity extends Component {
     let index = entities.indexOf(this);
     if (index == -1) return;
 
-    entities.splice(index, 1);
+    entities.splice(index, 1);        
   }
 
   from(data) {
@@ -57,7 +57,7 @@ function raycastEntities(pos, dirVec) {
   if (e) return {entity: e, d: closestD, x, y};
 }
 function raycastEntity(pos, dirVec, entity) {
-  const radius = Math.max(entity.transform.size.x, entity.transform.size.y) / 2 * 0.9;
+  const radius = Math.max(entity.transform.size.x, entity.transform.size.y) * 0.45;
 
   const m = pos._subV(entity.transform.pos);
   const b = m.dot(dirVec);
@@ -71,7 +71,7 @@ function raycastEntity(pos, dirVec, entity) {
 
   let t = -b - Math.sqrt(discriminant);
   if (t < 0) {
-    return
+    return;
   }
 
   return {

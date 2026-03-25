@@ -46,6 +46,7 @@ class Gun extends Component {
 
 
 
+    let grid = world.getComponent(Grid);
     let ammoType = ammos[info.ammoType];
     let endPoses = [];
     let hitPlayers = {};
@@ -56,7 +57,7 @@ class Gun extends Component {
       let pos = this.tipPos;
 
       while (pierces > 0) {
-        let resWorld = world.grid.raycast(pos, dirVec);
+        let resWorld = grid.raycast(pos, dirVec);
         let resEntity = raycastEntities(pos, dirVec);
         
 
@@ -67,6 +68,12 @@ class Gun extends Component {
 
         if (!resEntity || (resWorld && resWorld.d < resEntity.d)) {
           pos.set(resWorld.x, resWorld.y);
+
+          if (materials[resWorld.mat].components) {
+            let id = grid.tileEntities[resWorld.i]
+            if (!hitPlayers[id]) hitPlayers[id] = 0;
+            hitPlayers[id] += info.damage;
+          }
         } else {          
           pos.set(resEntity.x, resEntity.y);    
 

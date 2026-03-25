@@ -166,7 +166,7 @@ class SceneGame extends Scene {
 
       e.getComponent(Entity).hp += hp;
 
-      if (hp < 0) client.fire("sendChat", entityId, "*moan*");
+      if (hp < 0) client.fire("sendChat", entityId, "*ow*");
     });
     client.on("startRespawnTimer", () => {
       this.deathTimer = new TimerTime(5, () => {
