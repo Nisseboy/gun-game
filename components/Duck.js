@@ -12,12 +12,13 @@ class Duck extends Component {
     this.gridIndex = undefined;
     
     this.slipTimer = undefined;
+    this.slipping = false;
     
     this.sprite = this.getComponent(Sprite);
 
     this.sprite.tex = new StateMachineImg(
       new StateMachineNodeCondition(()=>{return (this.vel.x != 0 || this.vel.y != 0)}, 
-        new StateMachineNodeCondition(()=>{return this.slipTimer != undefined}, 
+        new StateMachineNodeCondition(()=>{return this.slipping}, 
           new StateMachineNodeResult(nde.tex["duck/slip"]),
           new StateMachineNodeResult(nde.tex["duck/walk"]),
         ),
@@ -83,8 +84,12 @@ class Duck extends Component {
   }
 
   slip() {
+    sendSet(this.ob, "!Duck.slipping", true);
     this.slipTimer = new TimerTime(0.5, () => {
-      if (this.slipTimer.progress == 1) this.slipTimer = undefined;
+      if (this.slipTimer.progress == 1) {
+        this.slipTimer = undefined;
+        sendSet(this.ob, "!Duck.slipping", false);
+      }
     });
   }
 
