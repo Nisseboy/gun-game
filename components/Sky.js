@@ -4,6 +4,7 @@ class Sky extends Light {
     super(props);
 
     this.startTime;
+    this.timePaused = props.timePaused ?? false;
     this.dayLengthS = props.dayLengthS ?? 20;
     this.offsetDays = props.day ?? 0.5;
 
@@ -18,8 +19,8 @@ class Sky extends Light {
 
     this.lastAngle;
     this.angle = props.angle ?? Math.PI / 4;
-    this.lastLength;
-    this.length = props.length ?? 1;
+    this.lastAngleY;
+    this.angleY = props.angleY ?? Math.PI / 4;
     this.lastColor = new Vec();
     this.color = props.color ?? new Vec(255, 255, 255);
 
@@ -40,6 +41,8 @@ class Sky extends Light {
   }
 
   update() {
+    if (this.timePaused) return;
+    
     let time = Date.now() - this.startTime;
 
     this.day = ((time / 1000 / this.dayLengthS) + this.offsetDays);
@@ -51,13 +54,15 @@ class Sky extends Light {
       let res = sunSimulation(this.day % 1);
       
       this.angle = res.angle;
-      this.length = res.length;
+      this.angleY = res.angleY;
       this.color.from(res.color);
       this.cached = false;
     }
   }
 
   setDay(day) {
+    let temp = this.timePaused;
+    this.timePaused = false;
     this.update();
 
     let diff = day - this.day;
@@ -65,6 +70,7 @@ class Sky extends Light {
     this.offsetDays += diff;
 
     this.update();
+    this.timePaused = temp;
   }
   setMinBounds(pos, r, roundingFactor = 2) {
     let rf = Math.round(roundingFactor*0.5)*2;
@@ -95,10 +101,10 @@ class Sky extends Light {
       this.lastPos.from(this.pos);
       this.lastMaxR = this.maxR;
     }
-    if (this.lastAngle != this.angle || this.lastLength != this.length || !this.lastColor.isEqualTo(this.color)) {
+    if (this.lastAngle != this.angle || this.lastAngleY != this.angleY || !this.lastColor.isEqualTo(this.color)) {
       this.cached = false;
       this.lastAngle = this.angle;
-      this.lastLength = this.length;
+      this.lastAngleY = this.angleY;
       this.lastColor.from(this.color);
     }
     
@@ -147,7 +153,7 @@ class Sky extends Light {
     ctx.fillStyle = `rgb(${this.color.r}, ${this.color.b}, ${this.color.g})`;
     let cos = Math.cos(this.angle);
     let sin = Math.sin(this.angle);
-    let l = this.length;
+    let l = _softCap(2 / Math.tan(this.angleY), 5);
     let dx = Math.floor(cos * l * this.cellSize);
     let dy = Math.floor(sin * l * this.cellSize);
     let invCellSize = 1 / this.cellSize;
@@ -216,6 +222,7 @@ class Sky extends Light {
   from(data) {
     super.from(data);
 
+    this.timePaused = data.timePaused;
     this.startTime = data.startTime;
     this.dayLengthS = data.dayLengthS;
     this.offsetDays = data.offsetDays;
@@ -224,7 +231,7 @@ class Sky extends Light {
     this.shadowMult = data.shadowMult;
 
     this.angle = data.angle;
-    this.length = data.length;
+    this.angleY = data.angleY;
     this.color = new Vec().from(data.color);
 
     return this;
@@ -261,8 +268,6 @@ function sunSimulation(dayFrac) {
 
     dayFrac = Math.max(0, Math.min(1, dayFrac));
 
-    const buildingHeight = 2;
-
     // sun path (east → west)
     const azimuth = (dayFrac - 0.5) * Math.PI;
 
@@ -270,16 +275,6 @@ function sunSimulation(dayFrac) {
     const elevation = Math.max(0, Math.sin(dayFrac * Math.PI));
     const elevationAngle = elevation * Math.PI / 2;
 
-    // shadow length
-    let rawShadow;
-
-    if (elevationAngle < 0.05) {
-        rawShadow = 20;
-    } else {
-        rawShadow = buildingHeight / Math.tan(elevationAngle);
-    }
-
-    const shadowLength = _softCap(rawShadow, 5);
 
     // better sky colors
     const night   = new Vec(8, 8, 20);
@@ -296,7 +291,7 @@ function sunSimulation(dayFrac) {
 
     return {
         angle: azimuth,
-        length: shadowLength,
+        angleY: elevationAngle,
         color: skyColor,
     };
 }

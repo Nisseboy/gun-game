@@ -345,6 +345,75 @@ class SceneEditor extends Scene {
             c.amount = e;            
           }]},
         }));
+      } else if (c instanceof Sky) {
+        setting("Time Paused", new UISettingCheckbox({
+          style: {...buttonStyle,},
+
+          value: c.timePaused,
+
+          events: {change: [e => {
+            c.timePaused = e;            
+          }]},
+        }));
+        setting("Time", new UISettingRange({
+          style: {...buttonStyle,},
+
+          min: 0,
+          max: 24.1,
+          value: (c.day % 1) * 24,
+          step: 0.1,
+
+          events: {input: [e => {
+            c.setDay(e / 24);
+          }], change: [() => {
+            this.openProperties(ob, false);
+          }]},
+        }));
+        setting("Angle (x)", new UISettingRange({
+          style: {...buttonStyle,},
+
+          min: 0,
+          max: 360,
+          value: c.angle * rad2deg,
+          step: 1,
+
+          events: {input: [e => {
+            c.angle = e * deg2rad;            
+          }]},
+        }));
+        setting("Angle (y)", new UISettingRange({
+          style: {...buttonStyle,},
+
+          min: 0,
+          max: 90,
+          value: c.angleY * rad2deg,
+          step: 1,
+
+          events: {input: [e => {
+            c.angleY = e * deg2rad;            
+          }]},
+        }));
+        setting("Brightness", new UISettingRange({
+          style: {...buttonStyle,},
+
+          min: 0,
+          max: 2.01,
+          value: c.brightness,
+          step: 0.01,
+
+          events: {input: [e => {
+            c.brightness = e;            
+          }]},
+        }));
+        setting("Smoothing Enabled", new UISettingCheckbox({
+          style: {...buttonStyle,},
+
+          value: c.smooth,
+
+          events: {change: [e => {
+            c.smooth = e;            
+          }]},
+        }));
       } else if (c instanceof Light) {
         setting("Tex", new UISettingDropdown({
           style: {...buttonStyle,
@@ -693,11 +762,11 @@ class SceneEditor extends Scene {
   }
 
   getHoveredOb(ob = world) {
+    if (this.mousePos.x >= ob.transform.pos.x - ob.transform.size.x * 0.5 && this.mousePos.y >= ob.transform.pos.y - ob.transform.size.y * 0.5 && this.mousePos.x <= ob.transform.pos.x + ob.transform.size.x * 0.5 && this.mousePos.y <= ob.transform.pos.y + ob.transform.size.y * 0.5 && ob.id != ITEMHOLDERID) return ob;
+    
     for (let c of ob.children) {
       let h = this.getHoveredOb(c);
       if (h) return h;
-
-      if (this.mousePos.x >= c.transform.pos.x - c.transform.size.x * 0.5 && this.mousePos.y >= c.transform.pos.y - c.transform.size.y * 0.5 && this.mousePos.x <= c.transform.pos.x + c.transform.size.x * 0.5 && this.mousePos.y <= c.transform.pos.y + c.transform.size.y * 0.5 && c.id > 2) return c;
     }
   }
 
@@ -768,8 +837,8 @@ class SceneEditor extends Scene {
       { //Outlines
         renderer.set("stroke", "rgba(255, 255, 255, 1)");
         function renderOutlines(ob) {
+          if (ob.id != ITEMHOLDERID) renderer.rect(ob.transform.pos._subV(ob.transform.size._mul(0.5)), ob.transform.size);
           for (let c of ob.children) {
-            if (c.id > 2) renderer.rect(c.transform.pos._subV(c.transform.size._mul(0.5)), c.transform.size);
             renderOutlines(c);
           }
         }
