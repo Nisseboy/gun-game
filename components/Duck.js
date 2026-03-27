@@ -47,7 +47,7 @@ class Duck extends Component {
     this.movedThisFrame = false;
     if (this.slipTimer) {
       this.move(this.lastMove, dt);
-      this.lastMove.mul(0.95);
+      this.lastMove.mul(1 - 5*dt);
     }
   }
 
