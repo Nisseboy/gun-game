@@ -11,9 +11,10 @@ class Server extends ServerBase {
     this.on("disconnection", (id, conn) => {
       world.getComponent(PlayerStore).store(idLookup[id]);
 
+      let name = idLookup[id].name;
       this.sendAll("mult", [
-        ["sendChat", undefined, id + " disconnected."],
         ["removeEntity", id],
+        ["disconnection", id, name],
       ]);
     });
     this.on("join", (id) => {
@@ -25,8 +26,9 @@ class Server extends ServerBase {
 
       let w = world.copy();
       w.stripClientComponents();
-      this.send(id, "world", w.serialize());      
-      this.sendAll("sendChat", undefined, idLookup[id].name + " connected.");      
+      let name = idLookup[id].name;
+      this.send(id, "world", w.serialize());       
+      this.sendAll("connection", id, name);      
     });
     this.on("ping", (id) => {      
       this.send(id, "ping");

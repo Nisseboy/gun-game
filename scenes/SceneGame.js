@@ -98,6 +98,16 @@ class SceneGame extends Scene {
       if (world) this.loadWorld(cloneData(world));
     });
 
+    client.on("connection", (id, name) => {
+      client.fire("sendChat", undefined, name + " connected.");
+
+      scenes.mainMenu.updatePlayerList();
+    });
+    client.on("disconnection", (id, name) => {      
+      client.fire("sendChat", undefined, name + " disconnected.");
+
+      scenes.mainMenu.updatePlayerList();
+    });
     client.on("createEntity", (entity, parentId) => {
       let e = cloneData(entity);
       e.stripClientComponents();
@@ -276,8 +286,10 @@ class SceneGame extends Scene {
     itemHolder = world.findId(ITEMHOLDERID);
 
     this.setPlayer(idLookup[id]);
-
     this.update(1/60);
+
+    scenes.mainMenu.updatePlayerList();
+    
   }
   setPlayer(entity) {
     player = entity;

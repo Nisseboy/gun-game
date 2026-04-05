@@ -16,6 +16,81 @@ class SceneMainMenu extends Scene {
   }
 
   start() {
+    this.playerList = new UIBase({
+      style: {
+        gap: 5,
+        padding: 5,
+
+        fill: "rgba(255, 255, 255, 0.05)",
+      },
+    });
+
+    let playerListHolder = new UIBase({
+      style: {
+        position: "absolute",
+        pos: new Vec(uicam.size.x - 45, 45),
+        selfPos: new Vec(-1, 0),
+        gap: 10,
+
+        direction: "column",
+      },
+
+      children: [
+        new UISettingCollection({
+          value: customization,
+          hasLabels: true,
+
+          style: {
+            gap: 10,
+            padding: 5,
+
+            fill: "rgba(255, 255, 255, 0.05)",
+
+            row: {gap: 10},
+            label: {...buttonStyle,},
+          },
+
+          children: [
+            new UISettingText({
+              name: "name", displayName: "Name",
+              style: {...buttonStyle,
+                minSize: new Vec(200, 0),
+                editor: {
+                  multiLine: false,
+                }
+              },
+
+              value: "",
+            }),
+
+            /*
+            new UISettingVec({
+              name: "col", displayName: "Color",
+              style: {...buttonStyle,
+                minSize: new Vec(200, 0),
+                
+                vec: {
+                  numAxes: 3,
+                }
+              },
+
+              value: new Vec(255, 255, 255),
+            }),*/
+          ],
+
+          events: {
+            change: [function (value) {
+              localStorage.setItem(settingsName+"-customization", JSON.stringify(customization));  
+              client?.send("customization", id, customization);        
+            }],
+          },
+        }),
+        this.playerList,
+      ],
+    });
+    
+    
+    
 
     this.ui = createDefaultUIRoot([
       this.lobbyDisplay,
@@ -97,47 +172,28 @@ class SceneMainMenu extends Scene {
       }),
 
 
+      playerListHolder,
       
-      new UISettingCollection({
-        value: customization,
-        hasLabels: true,
-
-        style: {
-          gap: 10,
-
-          position: "absolute",
-          pos: new Vec(uicam.size.x - 45, 45),
-          selfPos: new Vec(-1, 0),
-          padding: 5,
-
-          fill: "rgba(255, 255, 255, 0.05)",
-
-          row: {gap: 10},
-          label: {...buttonStyle,},
-        },
-
-        children: [
-          new UISettingText({
-            name: "name", displayName: "Name",
-            style: {...buttonStyle,
-              minSize: new Vec(200, 0),
-              editor: {
-                multiLine: false,
-              }
-            },
-
-            value: "",
-          }),
-        ],
-
-        events: {
-          change: [function (value) {
-            localStorage.setItem(settingsName+"-customization", JSON.stringify(customization));  
-            client?.send("customization", id, customization);        
-          }],
-        },
-      }),
     ]);     
+    this.updatePlayerList();
+  }
+
+  updatePlayerList() {
+    this.playerList.children = world?.getComponents(Duck).map(e=>e.ob).filter(e=>e.id!=id).map(ob => {
+      let elem = new UIText({
+        style: {...buttonStyle,
+          growX: true,
+        },
+
+        text: ob.name,
+      });
+
+      return elem;
+    }) || [];
+  
+    this.ui.calculateSize();
+    this.ui.growChildren();
+    this.ui.positionChildren();
   }
 
   render() {
