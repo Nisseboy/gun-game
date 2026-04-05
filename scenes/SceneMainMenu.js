@@ -19,7 +19,9 @@ class SceneMainMenu extends Scene {
     this.playerList = new UIBase({
       style: {
         gap: 5,
-        padding: 5,
+        padding: 5,       
+        growX: true,         
+
 
         fill: "rgba(255, 255, 255, 0.05)",
       },
@@ -54,7 +56,8 @@ class SceneMainMenu extends Scene {
             new UISettingText({
               name: "name", displayName: "Name",
               style: {...buttonStyle,
-                minSize: new Vec(200, 0),
+                minSize: new Vec(300, 0),
+                maxSize: new Vec(300, Infinity),
                 editor: {
                   multiLine: false,
                 }
@@ -182,7 +185,7 @@ class SceneMainMenu extends Scene {
     this.playerList.children = world?.getComponents(Duck).map(e=>e.ob).filter(e=>e.id!=id).map(ob => {
       let elem = new UIText({
         style: {...buttonStyle,
-          growX: true,
+          
         },
 
         text: ob.name,

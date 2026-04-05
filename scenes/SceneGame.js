@@ -134,6 +134,7 @@ class SceneGame extends Scene {
       let entity = idLookup[id];      
 
       entity.name = c.name || entity.id;
+      scenes.mainMenu.updatePlayerList();
        
     });
     client.on("changeId", (oldId, newId) => {      
